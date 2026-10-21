@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="hr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>neutrall.hr — vijesti iz više izvora</title>
+  <meta name="description" content="Agregator hrvatskih vijesti: kratki neutralni sažeci, više izvora za istu priču i jasno označene tvrdnje.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script src="config.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="masthead">
+    <div class="wrap masthead-inner">
+      <a class="logo" href="/" aria-label="neutrall.hr naslovnica">neutrall<span>.hr</span></a>
+      <p class="tagline">Što se dogodilo, tko to tvrdi i tko još o tome piše.</p>
+    </div>
+    <nav class="wrap filters" aria-label="Filteri">
+      <div class="chips" id="categories" role="group" aria-label="Kategorija"></div>
+      <div class="segmented" id="regions" role="group" aria-label="Regija"></div>
+    </nav>
+  </header>
+
+  <main class="wrap">
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+    <ol id="feed" class="feed"></ol>
+    <div class="more"><button id="more" type="button" hidden>Učitaj još</button></div>
+  </main>
+
+  <footer class="wrap footer">
+    <section>
+      <h2>Kako radimo</h2>
+      <ul>
+        <li>Prikazujemo sve vijesti iz praćenih medija, najnovije na vrhu. Ne rangiramo ih i ne skrivamo prema političkoj orijentaciji.</li>
+        <li>Sažetke piše AI model isključivo na temelju teksta izvornog članka. Mogu sadržavati pogreške, zato je uz svaki sažetak poveznica na original.</li>
+        <li>Izjave i tvrdnje pripisujemo onome tko ih iznosi. Kolumne i komentari označeni su kao mišljenje.</li>
+        <li>Kad o istoj priči piše više medija, prikazujemo ih zajedno i navodimo u čemu se izvještavanje razlikuje.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>Izvori</h2>
+      <p id="sources" class="sources">Učitavanje…</p>
+    </section>
+  </footer>
+
+  <template id="story-tpl">
+    <li class="story">
+      <div class="meta">
+        <span class="badge cat"></span>
+        <span class="badge type" hidden></span>
+        <span class="region"></span>
+        <time></time>
+        <span class="count" hidden></span>
+      </div>
+      <h2 class="title"><a target="_blank" rel="noopener noreferrer"></a></h2>
+      <p class="summary"></p>
+      <p class="uncertainty" hidden></p>
+      <details class="claims" hidden><summary></summary><ul></ul></details>
+      <div class="comparison" hidden><strong></strong><p></p></div>
+      <p class="source">
+        <span class="source-name"></span>
+        <span class="ai-label"></span>
+        <a class="original" target="_blank" rel="noopener noreferrer">Pročitaj original ↗</a>
+      </p>
+      <details class="related" hidden><summary></summary><ul></ul></details>
+    </li>
+  </template>
+</body>
+</html>
