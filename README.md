@@ -23,7 +23,7 @@ Stranica je na http://localhost:5500 i čita lokalni API. Mapa je izravno spojen
 ## Objava na Vercelu
 
 1. *New Project* → importaj ovaj repozitorij, Framework: *Other*. Build naredba i output mapa nisu potrebni.
-2. U `config.js` postavi `API_PRODUCTION` na javni hostname API-ja (Cloudflare Tunnel, zadano `https://api.neutrall.hr`). Isti hostname mora biti u `connect-src` u `vercel.json`.
+2. U `config.js` postavi `API_PRODUCTION` na javnu adresu API-ja (Tailscale Funnel, trenutno `https://neutrall.tail11f3ee.ts.net`). Isti hostname mora biti u `connect-src` u `vercel.json`.
 3. Domenu Vercel projekta dodaj u `CORS_ORIGINS` u backend `.env`. Za preview deploymente (`neutrall-hr-git-….vercel.app`) koristi `CORS_ORIGIN_REGEX`. Tunel mora gađati nginx gateway na `localhost:8080` (vidi backend README → Javni pristup).
 
 ## Sigurnost
