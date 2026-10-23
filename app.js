@@ -2,7 +2,8 @@
   const API = window.NEUTRALL_CONFIG.apiBase.replace(/\/$/, "");
   const CATEGORY_LABELS = {
     politika: "Politika", ekonomija: "Ekonomija", tehnologija: "Tehnologija", sport: "Sport",
-    kultura: "Kultura", znanost: "Znanost", zdravlje: "Zdravlje", kronika: "Kronika", ostalo: "Ostalo",
+    kultura: "Kultura", znanost: "Znanost", zdravlje: "Zdravlje", kronika: "Kronika", lifestyle: "Lifestyle",
+    ostalo: "Ostalo",
   };
   const TYPE_LABELS = { analiza: "Analiza", misljenje: "Mišljenje", intervju: "Intervju", priopcenje: "Priopćenje" };
   const REGION_LABELS = { hrvatska: "Hrvatska", svijet: "Svijet" };
@@ -67,7 +68,16 @@
       c.hidden = false;
     }
 
-    $(".title", node).textContent = lead.title;
+    // Naslov je uvijek izvorni naslov medija. Strojni prijevod stranog naslova samo je pomoć ispod njega,
+    // jer se njegova točnost ne može pouzdano automatski provjeriti.
+    const title = $(".title", node);
+    title.textContent = lead.title;
+    if (lead.title_hr) {
+      title.lang = "en";
+      const o = $(".translated-title", node);
+      o.textContent = `Strojni prijevod naslova: ${lead.title_hr}`;
+      o.hidden = false;
+    }
     $(".summary", node).textContent = lead.summary || "";
 
     if (lead.uncertainty) {
@@ -112,6 +122,7 @@
         const title = document.createElement("span");
         title.className = "rel-title";
         title.textContent = a.title;
+        if (a.title_hr) title.title = `Strojni prijevod: ${a.title_hr}`;
         const t = document.createElement("time");
         setTime(t, a.published_at);
         li.append(src, title, t);
