@@ -20,6 +20,13 @@
       <div class="chips" id="categories" role="group" aria-label="Kategorija"></div>
       <div class="segmented" id="regions" role="group" aria-label="Regija"></div>
     </nav>
+    <div class="wrap tools">
+      <form class="search" id="search" role="search">
+        <input type="search" id="q" name="q" maxlength="200" autocomplete="off"
+               placeholder="Pretraži po značenju, npr. poskupljenje struje" aria-label="Pretraga vijesti">
+      </form>
+      <div class="segmented" id="tones" role="group" aria-label="Ton vijesti"></div>
+    </div>
   </header>
 
   <main class="wrap">
@@ -32,8 +39,9 @@
     <section>
       <h2>Kako radimo</h2>
       <ul>
-        <li>Prikazujemo sve vijesti iz praćenih medija, najnovije na vrhu. Ne rangiramo ih i ne skrivamo prema političkoj orijentaciji.</li>
-        <li>Sažetke piše AI model isključivo na temelju teksta izvornog članka. Mogu sadržavati pogreške, zato je uz svaki sažetak poveznica na original.</li>
+        <li>Prikazujemo samo vijesti koje lokalni AI model procijeni važnima, uzimajući u obzir i koliko medija o njima piše. Trač, zabava i clickbait ne prolaze. Važnost se ne procjenjuje prema političkoj orijentaciji.</li>
+        <li>Sažetke piše AI model isključivo na temelju teksta izvornog članka i mogu sadržavati pogreške. Uz svaki sažetak navodimo medij iz kojeg potječe.</li>
+        <li>Filter tona: „Pozitivne“ skriva loše vijesti, „Negativne“ skriva dobre, a neutralne su vidljive u oba.</li>
         <li>Izjave i tvrdnje pripisujemo onome tko ih iznosi. Kolumne i komentari označeni su kao mišljenje.</li>
         <li>Kad o istoj priči piše više medija, prikazujemo ih zajedno i navodimo u čemu se izvještavanje razlikuje.</li>
       </ul>
@@ -53,7 +61,7 @@
         <time></time>
         <span class="count" hidden></span>
       </div>
-      <h2 class="title"><a target="_blank" rel="noopener noreferrer"></a></h2>
+      <h2 class="title"></h2>
       <p class="summary"></p>
       <p class="uncertainty" hidden></p>
       <details class="claims" hidden><summary></summary><ul></ul></details>
@@ -61,7 +69,6 @@
       <p class="source">
         <span class="source-name"></span>
         <span class="ai-label"></span>
-        <a class="original" target="_blank" rel="noopener noreferrer">Pročitaj original ↗</a>
       </p>
       <details class="related" hidden><summary></summary><ul></ul></details>
     </li>

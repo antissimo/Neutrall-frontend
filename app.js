@@ -12,14 +12,20 @@
   const statusEl = $("#status");
   const moreBtn = $("#more");
   const tpl = $("#story-tpl");
+  const searchForm = $("#search");
+  const searchInput = $("#q");
 
   const params = new URLSearchParams(location.search);
   const filters = {
     category: { value: params.get("kategorija") || "sve", param: "kategorija", el: $("#categories") },
     region: { value: params.get("regija") || "sve", param: "regija", el: $("#regions") },
+    tone: { value: params.get("ton") || "sve", param: "ton", el: $("#tones") },
   };
+  let query = (params.get("q") || "").trim();
+  searchInput.value = query;
   let cursor = null;
   let loading = false;
+  let requestId = 0;
 
   const safeUrl = (u) => (/^https?:\/\//i.test(u || "") ? u : "#");
 
@@ -61,9 +67,7 @@
       c.hidden = false;
     }
 
-    const link = $(".title a", node);
-    link.textContent = lead.title;
-    link.href = safeUrl(lead.url);
+    $(".title", node).textContent = lead.title;
     $(".summary", node).textContent = lead.summary || "";
 
     if (lead.uncertainty) {
@@ -95,7 +99,6 @@
 
     $(".source-name", node).textContent = lead.source.name;
     $(".ai-label", node).textContent = lead.summary_is_ai ? "AI sažetak" : "Izvorni opis";
-    $(".original", node).href = safeUrl(lead.url);
 
     if (story.related.length) {
       const d = $(".related", node);
@@ -106,14 +109,12 @@
         const src = document.createElement("span");
         src.className = "rel-source";
         src.textContent = a.source.name;
-        const al = document.createElement("a");
-        al.href = safeUrl(a.url);
-        al.target = "_blank";
-        al.rel = "noopener noreferrer";
-        al.textContent = a.title;
+        const title = document.createElement("span");
+        title.className = "rel-title";
+        title.textContent = a.title;
         const t = document.createElement("time");
         setTime(t, a.published_at);
-        li.append(src, al, t);
+        li.append(src, title, t);
         if (TYPE_LABELS[a.content_type]) li.append(` · ${TYPE_LABELS[a.content_type]}`);
         ul.append(li);
       }
@@ -123,30 +124,79 @@
   }
 
   async function load(reset) {
-    if (loading) return;
+    if (loading && !reset) return;
+    const id = ++requestId; // odgovor na zastarjeli upit ili filter se odbacuje
     loading = true;
     moreBtn.disabled = true;
     if (reset) {
       cursor = null;
       feedEl.replaceChildren();
-      statusEl.textContent = "Učitavanje…";
+      moreBtn.hidden = true;
+      statusEl.textContent = query ? "Pretraživanje…" : "Učitavanje…";
     }
     try {
-      const qs = new URLSearchParams({ category: filters.category.value, region: filters.region.value, limit: "20" });
-      if (cursor) qs.set("cursor", cursor);
-      const data = await api(`/api/v1/feed?${qs}`);
+      const qs = new URLSearchParams({
+        category: filters.category.value, region: filters.region.value, tone: filters.tone.value, limit: "20",
+      });
+      let data;
+      if (query) {
+        qs.set("q", query);
+        data = await api(`/api/v1/search?${qs}`);
+      } else {
+        if (cursor) qs.set("cursor", cursor);
+        data = await api(`/api/v1/feed?${qs}`);
+      }
+      if (id !== requestId) return;
       feedEl.append(...data.items.map(renderStory));
-      cursor = data.next_cursor;
+      cursor = query ? null : data.next_cursor;
       moreBtn.hidden = !cursor;
-      statusEl.textContent = feedEl.children.length ? "" : "Još nema obrađenih vijesti za ovaj filter. Nove stižu svakih nekoliko minuta.";
+      if (feedEl.children.length) {
+        statusEl.textContent = query ? `Rezultati za „${query}“` : "";
+      } else {
+        statusEl.textContent = query
+          ? `Nema važnih vijesti koje odgovaraju upitu „${query}“.`
+          : "Još nema obrađenih vijesti za ovaj filter. Nove stižu svakih nekoliko minuta.";
+      }
     } catch (e) {
-      statusEl.textContent = "Vijesti trenutno nisu dostupne. Pokušaj ponovno za nekoliko minuta.";
+      if (id !== requestId) return;
+      statusEl.textContent = e.message === "HTTP 429"
+        ? "Previše pretraga u kratkom vremenu. Pričekaj minutu pa pokušaj ponovno."
+        : query
+          ? "Pretraga trenutno nije dostupna. Pokušaj ponovno za nekoliko minuta."
+          : "Vijesti trenutno nisu dostupne. Pokušaj ponovno za nekoliko minuta.";
       console.error(e);
     } finally {
-      loading = false;
-      moreBtn.disabled = false;
+      if (id === requestId) {
+        loading = false;
+        moreBtn.disabled = false;
+      }
     }
   }
+
+  function setUrlParam(name, value) {
+    const url = new URL(location.href);
+    value ? url.searchParams.set(name, value) : url.searchParams.delete(name);
+    history.replaceState(null, "", url);
+  }
+
+  // Pretraga se pokreće na Enter ili kratko nakon što korisnik prestane tipkati.
+  let searchTimer;
+  function runSearch() {
+    clearTimeout(searchTimer);
+    const next = searchInput.value.trim().replace(/\s+/g, " ");
+    if (next === query || (next.length === 1)) return;
+    query = next;
+    setUrlParam("q", query);
+    load(true);
+  }
+  searchForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    runSearch();
+  });
+  searchInput.addEventListener("input", () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(runSearch, searchInput.value.trim() ? 700 : 0);
+  });
 
   function renderFilter(key, options) {
     const f = filters[key];
@@ -161,9 +211,7 @@
         if (o.id === f.value) return;
         f.value = o.id;
         f.el.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x.dataset.value === f.value)));
-        const url = new URL(location.href);
-        f.value === "sve" ? url.searchParams.delete(f.param) : url.searchParams.set(f.param, f.value);
-        history.replaceState(null, "", url);
+        setUrlParam(f.param, f.value === "sve" ? "" : f.value);
         load(true);
       });
       return b;
@@ -192,9 +240,10 @@
   moreBtn.addEventListener("click", () => load(false));
 
   api("/api/v1/filters")
-    .then(({ categories, regions }) => {
+    .then(({ categories, regions, tones }) => {
       renderFilter("category", categories);
       renderFilter("region", regions);
+      if (tones) renderFilter("tone", tones);
     })
     .catch(() => {})
     .finally(() => load(true));
