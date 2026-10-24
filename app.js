@@ -128,6 +128,17 @@
     }
     if (story.claims && story.claims.length) renderClaims($(".claims", node), story);
 
+    if (story.keywords && story.keywords.length) {
+      const topics = $(".topics", node);
+      for (const k of story.keywords) {
+        const b = el("button", "", k);
+        b.type = "button";
+        b.addEventListener("click", () => searchFor(k));
+        topics.append(b);
+      }
+      topics.hidden = false;
+    }
+
     const label = $(".ai-label", node);
     if (lead.summary_kind === "ai") {
       label.textContent = `AI sažetak iz ${listNames([...new Set(articles.map((a) => a.source.name))])}`;
@@ -219,6 +230,7 @@
     if (next === query || (next.length === 1)) return;
     query = next;
     setUrlParam("q", query);
+    markTrending();
     load(true);
   }
   searchForm.addEventListener("submit", (e) => {
@@ -229,6 +241,46 @@
     clearTimeout(searchTimer);
     searchTimer = setTimeout(runSearch, searchInput.value.trim() ? 700 : 0);
   });
+
+  // Klik na temu (u trendu ili uz priču) pretražuje sve priče po toj ključnoj riječi.
+  function searchFor(keyword) {
+    searchInput.value = keyword;
+    runSearch();
+    markTrending();
+    window.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  }
+
+  function markTrending() {
+    document.querySelectorAll("#trending button").forEach((b) =>
+      b.setAttribute("aria-pressed", String(b.dataset.keyword === query)));
+  }
+
+  async function loadTrending() {
+    try {
+      const { items } = await api("/api/v1/trending?limit=10");
+      if (!items.length) return;
+      $("#trending").replaceChildren(...items.map((t) => {
+        const li = el("li");
+        const b = el("button");
+        b.type = "button";
+        b.dataset.keyword = t.keyword;
+        b.append(el("span", "kw", t.keyword), el("span", "n", t.stories === 1 ? "1 priča" : `${t.stories} priče`));
+        b.addEventListener("click", () => (query === t.keyword ? clearSearch() : searchFor(t.keyword)));
+        li.append(b);
+        return li;
+      }));
+      $(".trending").hidden = false;
+      markTrending();
+    } catch {
+      // bez trendova stranica radi normalno
+    }
+  }
+
+  function clearSearch() {
+    searchInput.value = "";
+    runSearch();
+    markTrending();
+  }
 
   function renderFilter(key, options) {
     const f = filters[key];
@@ -281,4 +333,5 @@
     }),
     loadSources(),
   ]).then(() => load(true));
+  loadTrending();
 })();

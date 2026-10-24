@@ -36,11 +36,17 @@
     </div>
   </nav>
 
-  <main class="wrap">
-    <div id="status" class="status" role="status" aria-live="polite"></div>
-    <ol id="feed" class="feed"></ol>
-    <div class="more"><button id="more" type="button" hidden>Učitaj još</button></div>
-  </main>
+  <div class="wrap layout">
+    <aside class="trending" aria-labelledby="trending-h" hidden>
+      <h2 id="trending-h">U trendu</h2>
+      <ol id="trending"></ol>
+    </aside>
+    <main>
+      <div id="status" class="status" role="status" aria-live="polite"></div>
+      <ol id="feed" class="feed"></ol>
+      <div class="more"><button id="more" type="button" hidden>Učitaj još</button></div>
+    </main>
+  </div>
 
   <footer class="wrap footer">
     <section>
@@ -49,6 +55,7 @@
         <li>Prikazujemo samo događaje o kojima piše barem dva medija i koje AI procijeni važnima. Trač, zabava i clickbait ne prolaze, a važnost se ne procjenjuje prema političkoj orijentaciji.</li>
         <li>Sažetak i tvrdnje piše AI (Claude, a kad nije dostupan lokalni model) isključivo iz teksta članaka. Rečenice s brojkama, imenima ili činjenicama kojih nema u člancima automatski se izbacuju, ali greške su moguće.</li>
         <li>Traka iznad naslova pokazuje koji mediji pišu o događaju. Kad neki medij navodi nešto drugo, to piše odmah ispod tvrdnje.</li>
+        <li>„U trendu“ su teme o kojima danas piše najviše medija. Klik na temu pretražuje sve priče u bazi.</li>
         <li>Filter tona: „Pozitivne“ skriva loše vijesti, „Negativne“ skriva dobre, a neutralne su vidljive u oba.</li>
       </ul>
     </section>
@@ -75,6 +82,7 @@
         <h3>Tko što tvrdi</h3>
         <ul></ul>
       </section>
+      <p class="topics" hidden></p>
       <p class="ai-label"></p>
       <details class="related" hidden><summary></summary><ul></ul></details>
     </li>
