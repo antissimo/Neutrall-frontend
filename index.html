@@ -4,30 +4,37 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>neutrall.hr — vijesti iz više izvora</title>
-  <meta name="description" content="Agregator hrvatskih vijesti: kratki neutralni sažeci, više izvora za istu priču i jasno označene tvrdnje.">
+  <meta name="description" content="Važne hrvatske vijesti sažete iz više medija: tko što tvrdi i u čemu se mediji razlikuju.">
+  <meta name="theme-color" content="#eef1ee" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#151c1f" media="(prefers-color-scheme: dark)">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="fonts/serif-600-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/public-400-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="fonts.css">
   <link rel="stylesheet" href="styles.css">
   <script src="config.js" defer></script>
   <script src="app.js" defer></script>
 </head>
 <body>
-  <header class="masthead">
-    <div class="wrap masthead-inner">
-      <a class="logo" href="/" aria-label="neutrall.hr naslovnica">neutrall<span>.hr</span></a>
-      <p class="tagline">Što se dogodilo, tko to tvrdi i tko još o tome piše.</p>
-    </div>
-    <nav class="wrap filters" aria-label="Filteri">
-      <div class="chips" id="categories" role="group" aria-label="Kategorija"></div>
-      <div class="segmented" id="regions" role="group" aria-label="Regija"></div>
-    </nav>
-    <div class="wrap tools">
-      <form class="search" id="search" role="search">
-        <input type="search" id="q" name="q" maxlength="200" autocomplete="off"
-               placeholder="Pretraži po značenju, npr. poskupljenje struje" aria-label="Pretraga vijesti">
-      </form>
-      <div class="segmented" id="tones" role="group" aria-label="Ton vijesti"></div>
-    </div>
+  <a class="skip" href="#feed">Preskoči na vijesti</a>
+  <header class="brand wrap">
+    <a class="logo" href="/" aria-label="neutrall.hr naslovnica">neutrall<span>.hr</span></a>
+    <p class="tagline">Važne vijesti dana, sažete iz više medija. Uz svaku piše tko što tvrdi i gdje se mediji razilaze.</p>
   </header>
+
+  <nav class="bar" aria-label="Filteri">
+    <div class="wrap">
+      <div class="tabs" id="categories" role="group" aria-label="Kategorija"></div>
+      <div class="tools">
+        <form class="search" id="search" role="search">
+          <input type="search" id="q" name="q" maxlength="200" autocomplete="off"
+                 placeholder="Pretraži po značenju, npr. poskupljenje struje" aria-label="Pretraga vijesti">
+        </form>
+        <div class="segmented" id="regions" role="group" aria-label="Regija"></div>
+        <div class="segmented" id="tones" role="group" aria-label="Ton vijesti"></div>
+      </div>
+    </div>
+  </nav>
 
   <main class="wrap">
     <div id="status" class="status" role="status" aria-live="polite"></div>
@@ -39,11 +46,10 @@
     <section>
       <h2>Kako radimo</h2>
       <ul>
-        <li>Prikazujemo samo vijesti koje lokalni AI model procijeni važnima, uzimajući u obzir i koliko medija o njima piše. Trač, zabava i clickbait ne prolaze. Važnost se ne procjenjuje prema političkoj orijentaciji.</li>
-        <li>Sažetke piše AI model isključivo na temelju teksta izvornog članka i mogu sadržavati pogreške. Uz svaki sažetak navodimo medij iz kojeg potječe.</li>
+        <li>Prikazujemo samo događaje o kojima piše barem dva medija i koje AI procijeni važnima. Trač, zabava i clickbait ne prolaze, a važnost se ne procjenjuje prema političkoj orijentaciji.</li>
+        <li>Sažetak i tvrdnje piše AI (Claude, a kad nije dostupan lokalni model) isključivo iz teksta članaka. Rečenice s brojkama, imenima ili činjenicama kojih nema u člancima automatski se izbacuju, ali greške su moguće.</li>
+        <li>Traka iznad naslova pokazuje koji mediji pišu o događaju. Kad neki medij navodi nešto drugo, to piše odmah ispod tvrdnje.</li>
         <li>Filter tona: „Pozitivne“ skriva loše vijesti, „Negativne“ skriva dobre, a neutralne su vidljive u oba.</li>
-        <li>Izjave i tvrdnje pripisujemo onome tko ih iznosi. Kolumne i komentari označeni su kao mišljenje.</li>
-        <li>Kad o istoj priči piše više medija, prikazujemo ih zajedno i navodimo u čemu se izvještavanje razlikuje.</li>
       </ul>
     </section>
     <section>
@@ -55,21 +61,21 @@
   <template id="story-tpl">
     <li class="story">
       <div class="meta">
-        <span class="badge cat"></span>
-        <span class="badge type" hidden></span>
+        <span class="cat"></span>
+        <span class="type" hidden></span>
         <span class="region"></span>
         <time></time>
-        <span class="count" hidden></span>
       </div>
+      <ul class="coverage"></ul>
       <h2 class="title"></h2>
       <p class="translated-title" hidden></p>
       <p class="summary"></p>
       <p class="uncertainty" hidden></p>
-      <div class="claims" hidden><strong></strong><ul></ul></div>
-      <p class="source">
-        <span class="source-name"></span>
-        <span class="ai-label"></span>
-      </p>
+      <section class="claims" hidden>
+        <h3>Tko što tvrdi</h3>
+        <ul></ul>
+      </section>
+      <p class="ai-label"></p>
       <details class="related" hidden><summary></summary><ul></ul></details>
     </li>
   </template>

@@ -51,9 +51,54 @@
     return res.json();
   }
 
+  const el = (tag, cls, text) => {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  };
+  const listNames = (names) =>
+    names.length < 2 ? names.join("") : `${names.slice(0, -1).join(", ")} i ${names[names.length - 1]}`;
+
+  // Svi aktivni mediji: traka pokrivenosti pokazuje i one koji o događaju ne pišu.
+  let allSources = [];
+
+  function renderCoverage(ul, story, articles) {
+    const covering = new Set(articles.map((a) => a.source.name));
+    const differing = new Set((story.claims || []).flatMap((c) => (c.differs || []).map((d) => d.source)));
+    const names = allSources.length ? allSources.map((s) => s.name) : [...covering];
+    for (const name of names) {
+      const li = el("li", covering.has(name) ? "on" : "", name);
+      if (differing.has(name)) li.classList.add("differs");
+      li.title = differing.has(name) ? `${name} navodi nešto drugo`
+        : covering.has(name) ? `${name} piše o ovome` : `${name} ne piše o ovome`;
+      ul.append(li);
+    }
+    ul.setAttribute("aria-label", `Pišu: ${listNames([...covering])}`);
+  }
+
+  function renderClaims(box, story) {
+    const ul = $("ul", box);
+    for (const c of story.claims) {
+      const li = el("li", "", c.claim);
+      // Mediji se navode samo kad tvrdnju ne prenose svi koji pišu o priči.
+      const sources = (c.sources || []).filter((s) => s !== c.by);
+      const partial = sources.length && sources.length < story.source_count;
+      li.append(el("span", "who", partial ? `${c.by}, prema ${listNames(sources)}` : c.by));
+      for (const d of c.differs || []) {
+        const alt = el("span", "alt");
+        alt.append(el("b", "", `${d.source} navodi drukčije: `), d.version);
+        li.append(alt);
+      }
+      ul.append(li);
+    }
+    box.hidden = false;
+  }
+
   function renderStory(story) {
     const node = tpl.content.firstElementChild.cloneNode(true);
     const lead = story.lead;
+    const articles = [lead, ...story.related];
 
     $(".cat", node).textContent = CATEGORY_LABELS[lead.category] || "Vijest";
     if (TYPE_LABELS[lead.content_type]) {
@@ -63,17 +108,12 @@
     }
     $(".region", node).textContent = REGION_LABELS[lead.region] || "";
     setTime($("time", node), story.updated_at);
-    if (story.source_count > 1) {
-      const c = $(".count", node);
-      c.textContent = `${story.source_count} izvora`;
-      c.hidden = false;
-    }
+    renderCoverage($(".coverage", node), story, articles);
 
     // Strani naslov prikazujemo u strojnom prijevodu (prošao je provjeru vjernosti), a izvorni ispod njega.
     const title = $(".title", node);
     title.textContent = lead.title_hr || lead.title;
     if (lead.title_hr) {
-      title.title = "Strojni prijevod naslova";
       const o = $(".translated-title", node);
       o.textContent = `Izvorni naslov: ${lead.title}`;
       o.lang = "en";
@@ -83,59 +123,35 @@
 
     if (lead.uncertainty) {
       const u = $(".uncertainty", node);
-      u.textContent = "Nepotvrđeno: " + lead.uncertainty;
+      u.textContent = lead.uncertainty;
       u.hidden = false;
     }
+    if (story.claims && story.claims.length) renderClaims($(".claims", node), story);
 
-    // Ključne tvrdnje priče, skraćeno: tko tvrdi i koji mediji navode nešto drugo.
-    if (story.claims && story.claims.length) {
-      const box = $(".claims", node);
-      $("strong", box).textContent = story.disagreement ? "Tvrdnje · mediji se razlikuju" : "Tvrdnje";
-      const ul = $("ul", box);
-      for (const c of story.claims) {
-        const li = document.createElement("li");
-        li.append(c.claim);
-        const by = document.createElement("span");
-        by.className = "by";
-        by.textContent = ` (${c.by}${c.sources.length ? "; " + c.sources.join(", ") : ""})`;
-        li.append(by);
-        for (const d of c.differs || []) {
-          const diff = document.createElement("span");
-          diff.className = "differs";
-          const who = document.createElement("b");
-          who.textContent = `≠ ${d.source}: `;
-          diff.append(who, d.version);
-          li.append(diff);
-        }
-        ul.append(li);
-      }
-      box.hidden = false;
+    const label = $(".ai-label", node);
+    if (lead.summary_kind === "ai") {
+      label.textContent = `AI sažetak iz ${listNames([...new Set(articles.map((a) => a.source.name))])}`;
+      if (story.ai_provider) label.title = story.ai_provider.startsWith("claude") ? "Obradio Claude" : "Obradio lokalni AI model";
+    } else {
+      label.textContent = `${SUMMARY_LABELS[lead.summary_kind] || "Izvorni opis"}, ${lead.source.name}`;
     }
 
-    $(".source-name", node).textContent = lead.source.name;
-    $(".ai-label", node).textContent = SUMMARY_LABELS[lead.summary_kind] || (lead.summary_is_ai ? "AI sažetak" : "Izvorni opis");
-
-    if (story.related.length) {
-      const d = $(".related", node);
-      $("summary", d).textContent = `Također izvještavaju (${story.related.length})`;
-      const ul = $("ul", d);
-      for (const a of story.related) {
-        const li = document.createElement("li");
-        const src = document.createElement("span");
-        src.className = "rel-source";
-        src.textContent = a.source.name;
-        const title = document.createElement("span");
-        title.className = "rel-title";
-        title.textContent = a.title_hr || a.title;
-        if (a.title_hr) title.title = `Strojni prijevod. Izvorni naslov: ${a.title}`;
-        const t = document.createElement("time");
-        setTime(t, a.published_at);
-        li.append(src, title, t);
-        if (TYPE_LABELS[a.content_type]) li.append(` · ${TYPE_LABELS[a.content_type]}`);
-        ul.append(li);
-      }
-      d.hidden = false;
+    const d = $(".related", node);
+    $("summary", d).textContent = `Naslovi u medijima (${articles.length})`;
+    const ul = $("ul", d);
+    for (const a of [...articles].sort((x, y) => x.published_at.localeCompare(y.published_at))) {
+      const li = el("li");
+      const src = el("span", "rel-source", a.source.name + " ");
+      const t = el("time");
+      setTime(t, a.published_at);
+      src.append(t);
+      const tt = el("span", "rel-title", a.title_hr || a.title);
+      if (a.title_hr) tt.title = `Strojni prijevod. Izvorni naslov: ${a.title}`;
+      li.append(src, tt);
+      if (TYPE_LABELS[a.content_type]) li.append(`, ${TYPE_LABELS[a.content_type].toLowerCase()}`);
+      ul.append(li);
     }
+    d.hidden = false;
     return node;
   }
 
@@ -171,7 +187,7 @@
       } else {
         statusEl.textContent = query
           ? `Nema važnih vijesti koje odgovaraju upitu „${query}“.`
-          : "Još nema obrađenih vijesti za ovaj filter. Nove stižu svakih nekoliko minuta.";
+          : "Trenutno nema važnih priča za ovaj filter. Priča se pojavi kad o istom događaju napišu barem dva medija, a nove se obrađuju svakih desetak minuta.";
       }
     } catch (e) {
       if (id !== requestId) return;
@@ -237,6 +253,7 @@
   async function loadSources() {
     try {
       const { sources } = await api("/api/v1/sources");
+      allSources = sources;
       const el = $("#sources");
       el.replaceChildren();
       sources.forEach((s, i) => {
@@ -255,13 +272,13 @@
 
   moreBtn.addEventListener("click", () => load(false));
 
-  api("/api/v1/filters")
-    .then(({ categories, regions, tones }) => {
+  // Feed se crta tek kad su poznati filteri i popis medija (za traku pokrivenosti).
+  Promise.allSettled([
+    api("/api/v1/filters").then(({ categories, regions, tones }) => {
       renderFilter("category", categories);
       renderFilter("region", regions);
       if (tones) renderFilter("tone", tones);
-    })
-    .catch(() => {})
-    .finally(() => load(true));
-  loadSources();
+    }),
+    loadSources(),
+  ]).then(() => load(true));
 })();
