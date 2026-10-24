@@ -60,6 +60,14 @@
   const listNames = (names) =>
     names.length < 2 ? names.join("") : `${names.slice(0, -1).join(", ")} i ${names[names.length - 1]}`;
 
+  // Trajna adresa priče: /prica/<id>-<naslov>. Broj je dovoljan; naslov je samo za čitljivost.
+  const DIACRITICS = { č: "c", ć: "c", ž: "z", š: "s", đ: "dj" };
+  const slug = (text) => text.toLowerCase().replace(/[čćžšđ]/g, (c) => DIACRITICS[c])
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 70)
+    .replace(/-[^-]*$/, (m) => (m.length > 1 ? m : ""));
+  const storyPath = (story) => `/prica/${story.id}-${slug(story.lead.title_hr || story.lead.title)}`;
+  const detailMatch = location.pathname.match(/^\/prica\/(\d+)/);
+
   // Svi aktivni mediji: traka pokrivenosti pokazuje i one koji o događaju ne pišu.
   let allSources = [];
 
@@ -111,8 +119,10 @@
     renderCoverage($(".coverage", node), story, articles);
 
     // Strani naslov prikazujemo u strojnom prijevodu (prošao je provjeru vjernosti), a izvorni ispod njega.
-    const title = $(".title", node);
+    const title = $(".title a", node);
     title.textContent = lead.title_hr || lead.title;
+    title.href = storyPath(story);
+    $(".more-link a", node).href = storyPath(story);
     if (lead.title_hr) {
       const o = $(".translated-title", node);
       o.textContent = `Izvorni naslov: ${lead.title}`;
@@ -156,7 +166,11 @@
       const t = el("time");
       setTime(t, a.published_at);
       src.append(t);
-      const tt = el("span", "rel-title", a.title_hr || a.title);
+      // Poveznica na originalni članak: njegov tekst ne čuvamo, čitatelj ga čita kod medija.
+      const tt = el("a", "rel-title", a.title_hr || a.title);
+      tt.href = safeUrl(a.url);
+      tt.target = "_blank";
+      tt.rel = "noopener noreferrer";
       if (a.title_hr) tt.title = `Strojni prijevod. Izvorni naslov: ${a.title}`;
       li.append(src, tt);
       if (TYPE_LABELS[a.content_type]) li.append(`, ${TYPE_LABELS[a.content_type].toLowerCase()}`);
@@ -242,6 +256,95 @@
     searchTimer = setTimeout(runSearch, searchInput.value.trim() ? 700 : 0);
   });
 
+  async function renderDetail(id) {
+    const box = $("#detail");
+    document.querySelector(".bar").hidden = true;
+    $(".trending").remove();
+    $(".more").hidden = true;
+    statusEl.textContent = "Učitavanje…";
+    let story;
+    try {
+      story = await api(`/api/v1/stories/${id}`);
+    } catch (e) {
+      statusEl.textContent = e.message === "HTTP 404"
+        ? "Ova priča ne postoji. Možda je adresa nepotpuna; sve priče su na naslovnici."
+        : "Priča trenutno nije dostupna. Pokušaj ponovno za nekoliko minuta.";
+      return;
+    }
+    statusEl.textContent = "";
+    // Stara ili skraćena adresa preusmjerava se na kanonsku, s naslovom.
+    if (location.pathname !== storyPath(story)) history.replaceState(null, "", storyPath(story));
+    const lead = story.lead;
+    const articles = [lead, ...story.related];
+    document.title = `${lead.title_hr || lead.title} | neutrall.hr`;
+
+    const back = el("a", "back", "Sve vijesti");
+    back.href = "/";
+    const meta = el("div", "meta");
+    meta.append(el("span", "cat", CATEGORY_LABELS[lead.category] || "Vijest"), el("span", "region", REGION_LABELS[lead.region] || ""));
+    const t = el("time");
+    setTime(t, story.updated_at);
+    meta.append(t);
+    const coverage = el("ul", "coverage");
+    renderCoverage(coverage, story, articles);
+    const h1 = el("h1", "title", lead.title_hr || lead.title);
+    const lede = el("p", "lede", lead.summary || "");
+    const body = el("div", "body");
+    for (const p of story.body || []) body.append(el("p", "", p));
+
+    box.append(back, meta, coverage, h1, lede, body);
+    if (lead.uncertainty) box.append(el("p", "uncertainty", lead.uncertainty));
+    if (story.claims && story.claims.length) {
+      const claims = el("section", "claims");
+      claims.append(el("h2", "", "Tko što tvrdi"), el("ul"));
+      renderClaims(claims, story);
+      box.append(claims);
+    }
+    if (story.keywords && story.keywords.length) {
+      const topics = el("p", "topics");
+      for (const k of story.keywords) {
+        const a = el("a", "", k);
+        a.href = `/?q=${encodeURIComponent(k)}`;
+        topics.append(a);
+      }
+      box.append(topics);
+    }
+
+    const src = el("section", "originals");
+    src.append(el("h2", "", "Izvorni članci"));
+    const ul = el("ul");
+    for (const a of [...articles].sort((x, y) => x.published_at.localeCompare(y.published_at))) {
+      const li = el("li");
+      const link = el("a", "", a.title_hr || a.title);
+      link.href = safeUrl(a.url);
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      const when = el("time");
+      setTime(when, a.published_at);
+      const who = el("span", "rel-source", a.source.name + " ");
+      who.append(when);
+      li.append(who, link);
+      ul.append(li);
+    }
+    src.append(ul);
+    const note = el("p", "ai-label", story.ai_provider && story.ai_provider.startsWith("claude")
+      ? "Tekst je napisao AI (Claude) iz članaka navedenih medija; originale ne čuvamo, nego vodimo na njih."
+      : "Tekst je napisao lokalni AI model iz članaka navedenih medija.");
+    const share = el("button", "share", "Kopiraj poveznicu");
+    share.type = "button";
+    share.addEventListener("click", async () => {
+      const url = location.origin + storyPath(story);
+      try {
+        await navigator.clipboard.writeText(url);
+        share.textContent = "Poveznica kopirana";
+      } catch {
+        window.prompt("Poveznica na priču:", url);
+      }
+    });
+    box.append(src, note, share);
+    box.hidden = false;
+  }
+
   // Klik na temu (u trendu ili uz priču) pretražuje sve priče po toj ključnoj riječi.
   function searchFor(keyword) {
     searchInput.value = keyword;
@@ -324,6 +427,10 @@
 
   moreBtn.addEventListener("click", () => load(false));
 
+  if (detailMatch) {
+    loadSources().then(() => renderDetail(detailMatch[1]));
+    return;
+  }
   // Feed se crta tek kad su poznati filteri i popis medija (za traku pokrivenosti).
   Promise.allSettled([
     api("/api/v1/filters").then(({ categories, regions, tones }) => {
