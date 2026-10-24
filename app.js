@@ -5,9 +5,7 @@
     kultura: "Kultura", znanost: "Znanost", zdravlje: "Zdravlje", kronika: "Kronika", lifestyle: "Lifestyle",
     ostalo: "Ostalo",
   };
-  const TYPE_LABELS = { analiza: "Analiza", misljenje: "Mišljenje", intervju: "Intervju", priopcenje: "Priopćenje" };
   const REGION_LABELS = { hrvatska: "Hrvatska", svijet: "Svijet" };
-  const SUMMARY_LABELS = { ai: "AI sažetak", translated: "Strojni prijevod opisa", original: "Izvorni opis" };
 
   const $ = (sel, root = document) => root.querySelector(sel);
   const feedEl = $("#feed");
@@ -103,80 +101,17 @@
     box.hidden = false;
   }
 
+  // U feedu je samo naslov i kratki tekst; tko piše, tko što tvrdi i izvori su na stranici priče.
   function renderStory(story) {
     const node = tpl.content.firstElementChild.cloneNode(true);
     const lead = story.lead;
-    const articles = [lead, ...story.related];
-
     $(".cat", node).textContent = CATEGORY_LABELS[lead.category] || "Vijest";
-    if (TYPE_LABELS[lead.content_type]) {
-      const t = $(".type", node);
-      t.textContent = TYPE_LABELS[lead.content_type];
-      t.hidden = false;
-    }
     $(".region", node).textContent = REGION_LABELS[lead.region] || "";
     setTime($("time", node), story.updated_at);
-    renderCoverage($(".coverage", node), story, articles);
-
-    // Strani naslov prikazujemo u strojnom prijevodu (prošao je provjeru vjernosti), a izvorni ispod njega.
     const title = $(".title a", node);
     title.textContent = lead.title_hr || lead.title;
     title.href = storyPath(story);
-    $(".more-link a", node).href = storyPath(story);
-    if (lead.title_hr) {
-      const o = $(".translated-title", node);
-      o.textContent = `Izvorni naslov: ${lead.title}`;
-      o.lang = "en";
-      o.hidden = false;
-    }
     $(".summary", node).textContent = lead.summary || "";
-
-    if (lead.uncertainty) {
-      const u = $(".uncertainty", node);
-      u.textContent = lead.uncertainty;
-      u.hidden = false;
-    }
-    if (story.claims && story.claims.length) renderClaims($(".claims", node), story);
-
-    if (story.keywords && story.keywords.length) {
-      const topics = $(".topics", node);
-      for (const k of story.keywords) {
-        const b = el("button", "", k);
-        b.type = "button";
-        b.addEventListener("click", () => searchFor(k));
-        topics.append(b);
-      }
-      topics.hidden = false;
-    }
-
-    const label = $(".ai-label", node);
-    if (lead.summary_kind === "ai") {
-      label.textContent = `AI sažetak iz ${listNames([...new Set(articles.map((a) => a.source.name))])}`;
-      if (story.ai_provider) label.title = story.ai_provider.startsWith("claude") ? "Obradio Claude" : "Obradio lokalni AI model";
-    } else {
-      label.textContent = `${SUMMARY_LABELS[lead.summary_kind] || "Izvorni opis"}, ${lead.source.name}`;
-    }
-
-    const d = $(".related", node);
-    $("summary", d).textContent = `Naslovi u medijima (${articles.length})`;
-    const ul = $("ul", d);
-    for (const a of [...articles].sort((x, y) => x.published_at.localeCompare(y.published_at))) {
-      const li = el("li");
-      const src = el("span", "rel-source", a.source.name + " ");
-      const t = el("time");
-      setTime(t, a.published_at);
-      src.append(t);
-      // Poveznica na originalni članak: njegov tekst ne čuvamo, čitatelj ga čita kod medija.
-      const tt = el("a", "rel-title", a.title_hr || a.title);
-      tt.href = safeUrl(a.url);
-      tt.target = "_blank";
-      tt.rel = "noopener noreferrer";
-      if (a.title_hr) tt.title = `Strojni prijevod. Izvorni naslov: ${a.title}`;
-      li.append(src, tt);
-      if (TYPE_LABELS[a.content_type]) li.append(`, ${TYPE_LABELS[a.content_type].toLowerCase()}`);
-      ul.append(li);
-    }
-    d.hidden = false;
     return node;
   }
 

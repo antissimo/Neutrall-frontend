@@ -55,7 +55,7 @@
       <ul>
         <li>Prikazujemo samo događaje o kojima piše barem dva medija i koje AI procijeni važnima. Trač, zabava i clickbait ne prolaze, a važnost se ne procjenjuje prema političkoj orijentaciji.</li>
         <li>Sažetak i tvrdnje piše AI (Claude, a kad nije dostupan lokalni model) isključivo iz teksta članaka. Rečenice s brojkama, imenima ili činjenicama kojih nema u člancima automatski se izbacuju, ali greške su moguće.</li>
-        <li>Traka iznad naslova pokazuje koji mediji pišu o događaju. Kad neki medij navodi nešto drugo, to piše odmah ispod tvrdnje.</li>
+        <li>Na stranici priče traka iznad naslova pokazuje koji mediji pišu o događaju, a kad neki medij navodi nešto drugo, to piše odmah ispod tvrdnje.</li>
         <li>„U trendu“ su teme o kojima danas piše najviše medija. Klik na temu pretražuje sve priče u bazi.</li>
         <li>Filter tona: „Pozitivne“ skriva loše vijesti, „Negativne“ skriva dobre, a neutralne su vidljive u oba.</li>
       </ul>
@@ -70,23 +70,11 @@
     <li class="story">
       <div class="meta">
         <span class="cat"></span>
-        <span class="type" hidden></span>
         <span class="region"></span>
         <time></time>
       </div>
-      <ul class="coverage"></ul>
       <h2 class="title"><a></a></h2>
-      <p class="translated-title" hidden></p>
       <p class="summary"></p>
-      <p class="uncertainty" hidden></p>
-      <section class="claims" hidden>
-        <h3>Tko što tvrdi</h3>
-        <ul></ul>
-      </section>
-      <p class="topics" hidden></p>
-      <p class="ai-label"></p>
-      <p class="more-link"><a>Cijela priča</a></p>
-      <details class="related" hidden><summary></summary><ul></ul></details>
     </li>
   </template>
 </body>

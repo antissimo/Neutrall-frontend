@@ -88,7 +88,7 @@ a { color: var(--accent); text-underline-offset: 2px; }
 .status { color: var(--muted); padding: 28px 0 0; max-width: 36em; }
 .status:empty { display: none; }
 .feed { list-style: none; margin: 0; padding: 0; }
-.story { padding: 28px 0 30px; border-bottom: 1px solid var(--rule); }
+.story { padding: 24px 0 26px; border-bottom: 1px solid var(--rule); }
 .story:last-child { border-bottom: 0; }
 .meta { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 14px; color: var(--muted); }
 .meta .cat { color: var(--accent); font-weight: 700; }
@@ -110,7 +110,12 @@ a { color: var(--accent); text-underline-offset: 2px; }
 .more-link { margin: 4px 0 0; font-size: 15px; }
 .related a.rel-title { color: var(--ink); }
 .translated-title { margin: -4px 0 10px; font-size: 14px; color: var(--muted); }
-.summary { margin: 0 0 14px; max-width: 38em; }
+.summary { margin: 0; max-width: 38em; }
+.feed .summary { display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.story { position: relative; }
+/* cijela kartica vodi na priču, a naslov ostaje jedina poveznica za čitače zaslona */
+.feed .title a::after { content: ""; position: absolute; inset: 0; }
+.feed .story:hover .title a { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
 .uncertainty { margin: 0 0 14px; padding-left: 12px; border-left: 2px solid var(--rule); color: var(--muted); font-size: 15px; }
 
 .claims { margin: 0 0 14px; padding: 14px 16px 6px; background: var(--surface); border-radius: 6px; }
