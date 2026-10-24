@@ -84,9 +84,13 @@ a { color: var(--accent); }
 .summary { margin: 0 0 10px; }
 .translated-title { margin: -4px 0 8px; font-size: 13px; color: var(--muted); font-style: italic; }
 .uncertainty { margin: 0 0 10px; padding: 8px 12px; border-radius: 6px; background: var(--warn-bg); color: var(--warn-text); font-size: 14px; }
-.comparison { margin: 0 0 10px; padding: 10px 12px; border-left: 3px solid var(--accent); background: var(--diff-bg); border-radius: 0 6px 6px 0; font-size: 14px; }
-.comparison strong { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 2px; }
-.comparison p { margin: 0; }
+.claims { margin: 0 0 10px; padding: 10px 12px; border-left: 3px solid var(--accent); background: var(--diff-bg); border-radius: 0 6px 6px 0; font-size: 14px; }
+.claims strong { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; }
+.claims ul { margin: 0; padding-left: 18px; }
+.claims li { margin: 2px 0; }
+.claims .by { color: var(--muted); }
+.claims .differs { display: block; font-size: 13px; color: var(--muted); }
+.claims .differs b { color: var(--text); font-weight: 600; }
 .source { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 0; font-size: 14px; color: var(--muted); }
 .source-name { color: var(--text); font-weight: 600; }
 details { margin-top: 10px; font-size: 14px; }

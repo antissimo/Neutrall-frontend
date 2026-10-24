@@ -87,24 +87,28 @@
       u.hidden = false;
     }
 
-    if (lead.claims && lead.claims.length) {
-      const d = $(".claims", node);
-      $("summary", d).textContent = `Tvrdnje u članku (${lead.claims.length})`;
-      const ul = $("ul", d);
-      for (const c of lead.claims) {
+    // Ključne tvrdnje priče, skraćeno: tko tvrdi i koji mediji navode nešto drugo.
+    if (story.claims && story.claims.length) {
+      const box = $(".claims", node);
+      $("strong", box).textContent = story.disagreement ? "Tvrdnje · mediji se razlikuju" : "Tvrdnje";
+      const ul = $("ul", box);
+      for (const c of story.claims) {
         const li = document.createElement("li");
-        const by = document.createElement("strong");
-        by.textContent = c.by + ": ";
-        li.append(by, c.claim);
+        li.append(c.claim);
+        const by = document.createElement("span");
+        by.className = "by";
+        by.textContent = ` (${c.by}${c.sources.length ? "; " + c.sources.join(", ") : ""})`;
+        li.append(by);
+        for (const d of c.differs || []) {
+          const diff = document.createElement("span");
+          diff.className = "differs";
+          const who = document.createElement("b");
+          who.textContent = `≠ ${d.source}: `;
+          diff.append(who, d.version);
+          li.append(diff);
+        }
         ul.append(li);
       }
-      d.hidden = false;
-    }
-
-    if (story.comparison) {
-      const box = $(".comparison", node);
-      $("strong", box).textContent = story.disagreement ? "Izvori se razlikuju" : "Kako izvještavaju izvori";
-      $("p", box).textContent = story.comparison;
       box.hidden = false;
     }
 
