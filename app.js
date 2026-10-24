@@ -7,6 +7,7 @@
   };
   const TYPE_LABELS = { analiza: "Analiza", misljenje: "Mišljenje", intervju: "Intervju", priopcenje: "Priopćenje" };
   const REGION_LABELS = { hrvatska: "Hrvatska", svijet: "Svijet" };
+  const SUMMARY_LABELS = { ai: "AI sažetak", translated: "Strojni prijevod opisa", original: "Izvorni opis" };
 
   const $ = (sel, root = document) => root.querySelector(sel);
   const feedEl = $("#feed");
@@ -68,14 +69,14 @@
       c.hidden = false;
     }
 
-    // Naslov je uvijek izvorni naslov medija. Strojni prijevod stranog naslova samo je pomoć ispod njega,
-    // jer se njegova točnost ne može pouzdano automatski provjeriti.
+    // Strani naslov prikazujemo u strojnom prijevodu (prošao je provjeru vjernosti), a izvorni ispod njega.
     const title = $(".title", node);
-    title.textContent = lead.title;
+    title.textContent = lead.title_hr || lead.title;
     if (lead.title_hr) {
-      title.lang = "en";
+      title.title = "Strojni prijevod naslova";
       const o = $(".translated-title", node);
-      o.textContent = `Strojni prijevod naslova: ${lead.title_hr}`;
+      o.textContent = `Izvorni naslov: ${lead.title}`;
+      o.lang = "en";
       o.hidden = false;
     }
     $(".summary", node).textContent = lead.summary || "";
@@ -108,7 +109,7 @@
     }
 
     $(".source-name", node).textContent = lead.source.name;
-    $(".ai-label", node).textContent = lead.summary_is_ai ? "AI sažetak" : "Izvorni opis";
+    $(".ai-label", node).textContent = SUMMARY_LABELS[lead.summary_kind] || (lead.summary_is_ai ? "AI sažetak" : "Izvorni opis");
 
     if (story.related.length) {
       const d = $(".related", node);
@@ -121,8 +122,8 @@
         src.textContent = a.source.name;
         const title = document.createElement("span");
         title.className = "rel-title";
-        title.textContent = a.title;
-        if (a.title_hr) title.title = `Strojni prijevod: ${a.title_hr}`;
+        title.textContent = a.title_hr || a.title;
+        if (a.title_hr) title.title = `Strojni prijevod. Izvorni naslov: ${a.title}`;
         const t = document.createElement("time");
         setTime(t, a.published_at);
         li.append(src, title, t);
