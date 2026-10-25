@@ -152,7 +152,7 @@
     } catch (e) {
       if (id !== requestId) return;
       statusEl.textContent = e.message === "HTTP 429"
-        ? "Previše pretraga u kratkom vremenu. Pričekaj minutu pa pokušaj ponovno."
+        ? "Pretraga je trenutno zauzeta. Pokušaj ponovno za nekoliko sekundi."
         : query
           ? "Pretraga trenutno nije dostupna. Pokušaj ponovno za nekoliko minuta."
           : "Vijesti trenutno nisu dostupne. Pokušaj ponovno za nekoliko minuta.";
