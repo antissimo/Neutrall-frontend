@@ -36,6 +36,10 @@
     {
       "source": "/prica/:path*",
       "destination": "/"
+    },
+    {
+      "source": "/sazetak",
+      "destination": "/"
     }
   ]
 }

@@ -235,7 +235,9 @@
     const body = el("div", "body");
     for (const p of story.body || []) body.append(el("p", "", p));
 
-    box.append(back, meta, coverage, h1, lede, body);
+    box.append(back, meta, coverage, h1, lede);
+    if (story.polymarket) box.append(renderMarket(story.polymarket));
+    box.append(body);
     if (lead.uncertainty) box.append(el("p", "uncertainty", lead.uncertainty));
     if (story.claims && story.claims.length) {
       const claims = el("section", "claims");
@@ -252,8 +254,6 @@
       }
       box.append(topics);
     }
-
-    if (story.polymarket) box.append(renderMarket(story.polymarket));
 
     const src = el("section", "originals");
     src.append(el("h2", "", "Izvorni članci"));
@@ -287,6 +287,48 @@
       }
     });
     box.append(src, note, share);
+    box.hidden = false;
+  }
+
+  // Sažetak dana: najvažnije priče zadnjih 24 sata, poredane po važnosti (zato su numerirane).
+  async function renderDigest() {
+    document.querySelector(".bar").hidden = true;
+    $(".trending").remove();
+    $(".more").hidden = true;
+    document.title = "Sažetak dana | neutrall.hr";
+    $(".digest-btn").setAttribute("aria-current", "page");
+    statusEl.textContent = "Učitavanje…";
+    let data;
+    try {
+      data = await api("/api/v1/digest");
+    } catch {
+      statusEl.textContent = "Sažetak trenutno nije dostupan. Pokušaj ponovno za nekoliko minuta.";
+      return;
+    }
+    statusEl.textContent = "";
+    const box = $("#detail");
+    box.classList.add("digest");
+    const back = el("a", "back", "Sve vijesti");
+    back.href = "/";
+    const today = new Date().toLocaleDateString("hr-HR", { weekday: "long", day: "numeric", month: "long" });
+    box.append(back, el("h1", "title", `Sažetak dana, ${today}`),
+      el("p", "lede", "Najvažnije iz zadnja 24 sata, poredano po važnosti i broju medija koji o tome pišu."));
+    if (!data.items.length) {
+      box.append(el("p", "", "Zadnja 24 sata još nema dovoljno važnih priča. Pogledaj naslovnicu."));
+    }
+    const ol = el("ol", "digest-list");
+    for (const story of data.items) {
+      const li = el("li");
+      const a = el("a", "", story.lead.title_hr || story.lead.title);
+      a.href = storyPath(story);
+      const h = el("h2");
+      h.append(a);
+      const first = (story.lead.summary || "").split(/(?<=[.!?])\s+(?=[A-ZČĆŽŠĐ0-9])/).slice(0, 2).join(" ");
+      const meta = el("p", "digest-meta", `${CATEGORY_LABELS[story.lead.category] || "Vijest"}, ${story.source_count} medija`);
+      li.append(h, el("p", "", first), meta);
+      ol.append(li);
+    }
+    box.append(ol);
     box.hidden = false;
   }
 
@@ -411,6 +453,10 @@
 
   moreBtn.addEventListener("click", () => load(false));
 
+  if (location.pathname.replace(/\/$/, "") === "/sazetak") {
+    renderDigest();
+    return;
+  }
   if (detailMatch) {
     loadSources().then(() => renderDetail(detailMatch[1]));
     return;

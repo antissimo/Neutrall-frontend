@@ -33,6 +33,13 @@ a { color: var(--accent); text-underline-offset: 2px; }
 
 /* zaglavlje */
 .brand { padding-top: 32px; padding-bottom: 20px; }
+.brand-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.digest-btn {
+  flex: none; padding: 8px 14px; border-radius: 6px; background: var(--accent-fill); color: #fff;
+  font-weight: 700; font-size: 15px; text-decoration: none;
+}
+.digest-btn:hover { background: var(--accent); }
+.digest-btn[aria-current="page"] { background: var(--accent-soft); color: var(--accent); }
 .logo { font: 600 34px/1 var(--serif); color: var(--ink); text-decoration: none; letter-spacing: -0.02em; }
 .logo span { color: var(--accent-fill); }
 .tagline { margin: 10px 0 0; max-width: 34em; color: var(--muted); font-size: 16px; line-height: 1.5; }
@@ -159,8 +166,18 @@ details li { margin-bottom: 8px; line-height: 1.45; }
 .detail .share { margin-top: 18px; border: 1px solid var(--rule); background: var(--surface); color: var(--ink); padding: 9px 18px; border-radius: 6px; font: 16px var(--sans); cursor: pointer; }
 .detail:not([hidden]) ~ .feed, .detail:not([hidden]) ~ .more { display: none; }
 
+/* sažetak dana */
+.digest-list { margin: 8px 0 0; padding-left: 1.6em; }
+.digest-list li { padding: 14px 0; border-top: 1px solid var(--rule); }
+.digest-list li::marker { font: 600 20px var(--serif); color: var(--accent-fill); }
+.digest-list h2 { margin: 0 0 6px; font: 600 21px/1.25 var(--serif); }
+.digest-list h2 a { color: var(--ink); text-decoration: none; }
+.digest-list h2 a:hover { text-decoration: underline; text-underline-offset: 4px; }
+.digest-list p { margin: 0; }
+.digest-list .digest-meta { margin-top: 4px; font-size: 13px; color: var(--muted); }
+
 /* tržište predviđanja na stranici priče */
-.market { margin-top: 24px; padding: 14px 16px; border: 1px solid var(--rule); border-radius: 6px; }
+.market { margin: 4px 0 22px; padding: 14px 16px; border: 1px solid var(--rule); border-radius: 6px; }
 .market h2 { margin: 0 0 4px; font: 600 18px/1.3 var(--serif); }
 .market .question { margin: 0 0 10px; color: var(--muted); font-size: 15px; }
 .market ul { list-style: none; margin: 0; padding: 0; }
