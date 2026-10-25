@@ -88,8 +88,12 @@
   const slug = (text) => text.toLowerCase().replace(/[čćžšđ]/g, (c) => DIACRITICS[c])
     .normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 70)
     .replace(/-[^-]*$/, (m) => (m.length > 1 ? m : ""));
-  const storyPath = (story) => `/prica/${story.id}-${slug(story.lead.title_hr || story.lead.title)}`;
+  // Naslov priče: AI naslov usklađen sa sažetkom, a bez njega naslov glavnog članka.
+  const storyTitle = (story) => story.headline || story.lead.title_hr || story.lead.title;
+  const storyPath = (story) => `/prica/${story.id}-${slug(storyTitle(story))}`;
   const detailMatch = location.pathname.match(/^\/prica\/(\d+)/);
+  const threadMatch = location.pathname.match(/^\/nit\/(\d+)/);
+  const threadPath = (t) => `/nit/${t.id}-${slug(t.title || "nit")}`;
 
   // Svi aktivni mediji: traka pokrivenosti pokazuje i one koji o događaju ne pišu.
   let allSources = [];
@@ -126,17 +130,48 @@
     box.hidden = false;
   }
 
+  // Niti u feedu: prva (najnovija) priča niti dobiva karticu, a ostale priče iste niti dodaju se u njen popis.
+  let threadCards = new Map();
+
+  function addToThread(card, story) {
+    const box = $(".thread-more", card);
+    const li = el("li");
+    const a = el("a", "", storyTitle(story));
+    a.href = storyPath(story);
+    const t = el("time");
+    setTime(t, story.updated_at);
+    li.append(a, " ", t);
+    $("ul", box).append(li);
+    box.hidden = false;
+  }
+
   // U feedu je samo naslov i kratki tekst; tko piše, tko što tvrdi i izvori su na stranici priče.
   function renderStory(story) {
+    if (story.thread && threadCards.has(story.thread.id)) {
+      addToThread(threadCards.get(story.thread.id), story);
+      return null;
+    }
     const node = tpl.content.firstElementChild.cloneNode(true);
     const lead = story.lead;
     $(".cat", node).textContent = CATEGORY_LABELS[lead.category] || "Vijest";
     $(".region", node).textContent = REGION_LABELS[lead.region] || "";
     setTime($("time", node), story.updated_at);
     const title = $(".title a", node);
-    title.textContent = lead.title_hr || lead.title;
+    title.textContent = storyTitle(story);
     title.href = storyPath(story);
     $(".summary", node).textContent = lead.summary || "";
+    if (story.thread) {
+      const label = $(".thread-label", node);
+      label.textContent = `Nit: ${story.thread.title}`;
+      label.href = threadPath(story.thread);
+      label.hidden = false;
+      const all = $(".thread-all", node);
+      all.textContent = `Cijela nit (${story.thread.count} ${story.thread.count < 5 ? "priče" : "priča"})`;
+      all.href = threadPath(story.thread);
+      $(".thread-more", node).hidden = false;
+      node.classList.add("in-thread");
+      threadCards.set(story.thread.id, node);
+    }
     return node;
   }
 
@@ -147,6 +182,7 @@
     moreBtn.disabled = true;
     if (reset) {
       cursor = null;
+      threadCards = new Map();
       feedEl.replaceChildren();
       moreBtn.hidden = true;
       statusEl.textContent = query ? "Pretraživanje…" : "Učitavanje…";
@@ -165,7 +201,7 @@
       }
       if (id !== requestId) return;
       if (reset) track(query ? "search" : "feed");
-      feedEl.append(...data.items.map(renderStory));
+      feedEl.append(...data.items.map(renderStory).filter(Boolean));
       cursor = query ? null : data.next_cursor;
       moreBtn.hidden = !cursor;
       if (feedEl.children.length) {
@@ -246,7 +282,7 @@
     if (location.pathname !== storyPath(story)) history.replaceState(null, "", storyPath(story));
     const lead = story.lead;
     const articles = [lead, ...story.related];
-    document.title = `${lead.title_hr || lead.title} | neutrall`;
+    document.title = `${storyTitle(story)} | neutrall`;
 
     const back = el("a", "back", "Sve vijesti");
     back.href = "/";
@@ -257,7 +293,7 @@
     meta.append(t);
     const coverage = el("ul", "coverage");
     renderCoverage(coverage, story, articles);
-    const h1 = el("h1", "title", lead.title_hr || lead.title);
+    const h1 = el("h1", "title", storyTitle(story));
     const lede = el("p", "lede", lead.summary || "");
     const body = el("div", "body");
     for (const p of story.body || []) body.append(el("p", "", p));
@@ -282,6 +318,7 @@
       box.append(topics);
     }
 
+    if (story.thread) box.append(renderTimeline(story));
     box.append(renderRating(story.id));
 
     const src = el("section", "originals");
@@ -472,6 +509,73 @@
       logout);
   }
 
+  // "Razvoj događaja": ostale priče iste niti, najnovija prva; trenutna je označena.
+  function renderTimeline(story) {
+    const sec = el("section", "timeline");
+    const h = el("h2");
+    const a = el("a", "", `Razvoj događaja: ${story.thread.title}`);
+    a.href = threadPath(story.thread);
+    h.append(a);
+    const ol = el("ol");
+    sec.append(h, ol);
+    api(`/api/v1/threads/${story.thread.id}`).then((t) => {
+      for (const s of t.items.slice(0, 12)) {
+        const li = el("li", s.id === story.id ? "current" : "");
+        const when = el("time");
+        setTime(when, s.updated_at);
+        const link = el(s.id === story.id ? "span" : "a", "", storyTitle(s));
+        if (s.id !== story.id) link.href = storyPath(s);
+        li.append(when, link);
+        ol.append(li);
+      }
+      if (t.items.length > 12) {
+        const more = el("a", "thread-all", `Cijela nit (${t.count} priča)`);
+        more.href = threadPath(t);
+        sec.append(more);
+      }
+    }).catch(() => sec.remove());
+    return sec;
+  }
+
+  async function renderThread(id) {
+    document.querySelector(".bar").hidden = true;
+    $(".trending").remove();
+    $(".more").hidden = true;
+    statusEl.textContent = "Učitavanje…";
+    let t;
+    try {
+      t = await api(`/api/v1/threads/${id}`);
+    } catch (e) {
+      statusEl.textContent = e.message === "HTTP 404" ? "Ova nit više ne postoji." : "Nit trenutno nije dostupna.";
+      return;
+    }
+    statusEl.textContent = "";
+    track("feed");
+    if (location.pathname !== threadPath(t)) history.replaceState(null, "", threadPath(t));
+    document.title = `${t.title} | neutrall`;
+    const box = $("#detail");
+    box.classList.add("thread-page");
+    const back = el("a", "back", "Sve vijesti");
+    back.href = "/";
+    box.append(back, el("p", "kicker", "Nit"), el("h1", "title", t.title),
+      el("p", "lede", `${t.count} ${t.count < 5 ? "priče" : "priča"}, najnovija prva.`));
+    const ol = el("ol", "thread-list");
+    for (const s of t.items) {
+      const li = el("li");
+      const when = el("time");
+      setTime(when, s.updated_at);
+      const h = el("h2");
+      const a = el("a", "", storyTitle(s));
+      a.href = storyPath(s);
+      h.append(a);
+      const first = (s.lead.summary || "").split(/(?<=[.!?])\s+(?=[A-ZČĆŽŠĐ0-9])/).slice(0, 2).join(" ");
+      li.append(when, h, el("p", "", first));
+      ol.append(li);
+    }
+    box.append(ol);
+    box.hidden = false;
+  }
+
   // Ocjena priče: točnost i nepristranost (da/ne) uz neobavezni komentar. Pamti se da je priča ocijenjena.
   function renderRating(storyId) {
     const sec = el("section", "rating");
@@ -556,7 +660,7 @@
     const ol = el("ol", "digest-list");
     for (const story of data.items) {
       const li = el("li");
-      const a = el("a", "", story.lead.title_hr || story.lead.title);
+      const a = el("a", "", storyTitle(story));
       a.href = storyPath(story);
       const h = el("h2");
       h.append(a);
@@ -704,6 +808,11 @@
   }
   if (location.pathname.replace(/\/$/, "") === "/sazetak") {
     renderDigest();
+    return;
+  }
+  if (threadMatch) {
+    loadSources();
+    renderThread(threadMatch[1]);
     return;
   }
   if (detailMatch) {

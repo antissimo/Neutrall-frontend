@@ -44,6 +44,10 @@
     {
       "source": "/statistika",
       "destination": "/"
+    },
+    {
+      "source": "/nit/:path*",
+      "destination": "/"
     }
   ]
 }
