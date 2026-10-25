@@ -166,6 +166,13 @@
     title.href = storyPath(story);
     $(".summary", node).textContent = lead.summary || "";
     if (story.thread) {
+      // Kartica niti: naslov i sažetak niti (Claude ih piše za cijelu temu), a priče niti su popis ispod.
+      if (story.thread.headline) {
+        title.textContent = story.thread.headline;
+        title.href = threadPath(story.thread);
+        if (story.thread.summary) $(".summary", node).textContent = story.thread.summary;
+        addToThread(node, story);
+      }
       const label = $(".thread-label", node);
       label.textContent = `Nit: ${story.thread.title}`;
       label.href = threadPath(story.thread);
@@ -557,13 +564,14 @@
     statusEl.textContent = "";
     track("feed");
     if (location.pathname !== threadPath(t)) history.replaceState(null, "", threadPath(t));
-    document.title = `${t.title} | neutrall`;
+    document.title = `${t.headline || t.title} | neutrall`;
     const box = $("#detail");
     box.classList.add("thread-page");
     const back = el("a", "back", "Sve vijesti");
     back.href = "/";
-    box.append(back, el("p", "kicker", "Nit"), el("h1", "title", t.title),
-      el("p", "lede", `${stories(t.count)}, najnovija prva.`));
+    box.append(back, el("p", "kicker", `Nit: ${t.title}`), el("h1", "title", t.headline || t.title));
+    if (t.summary) box.append(el("p", "lede", t.summary));
+    box.append(el("p", "thread-count", `${stories(t.count)}, najnovija prva.`));
     const ol = el("ol", "thread-list");
     for (const s of t.items) {
       const li = el("li");
@@ -672,7 +680,7 @@
       if (story.thread && story.thread.count > 1) {
         // Tema s više priča: naslov teme, najnoviji važan razvoj i ostali ključni naslovi teme.
         li.classList.add("digest-topic");
-        const topic = el("a", "", story.thread.title.charAt(0).toUpperCase() + story.thread.title.slice(1));
+        const topic = el("a", "", story.thread.headline || story.thread.title.charAt(0).toUpperCase() + story.thread.title.slice(1));
         topic.href = threadPath(story.thread);
         const h = el("h2");
         h.append(topic);
