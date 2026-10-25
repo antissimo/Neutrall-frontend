@@ -253,6 +253,8 @@
       box.append(topics);
     }
 
+    if (story.polymarket) box.append(renderMarket(story.polymarket));
+
     const src = el("section", "originals");
     src.append(el("h2", "", "Izvorni članci"));
     const ul = el("ul");
@@ -286,6 +288,43 @@
     });
     box.append(src, note, share);
     box.hidden = false;
+  }
+
+  // Tržište predviđanja (Polymarket) o istoj temi: kvote trgovaca, jasno odvojene od teksta priče.
+  function renderMarket(pm) {
+    const sec = el("section", "market");
+    sec.append(el("h2", "", "Tržište predviđanja"));
+    const q = el("p", "question", pm.title);
+    q.lang = "en";
+    sec.append(q);
+    const ul = el("ul");
+    for (const o of pm.outcomes) {
+      const pct = Math.round(o.probability * 100);
+      const li = el("li");
+      const label = el("span", "label", o.label);
+      if (o.label !== "Da" && o.label !== "Ne") label.lang = "en";
+      const bar = el("span", "bar");
+      const fill = el("span", "fill");
+      fill.style.width = `${Math.max(pct, 1)}%`;
+      bar.append(fill);
+      li.append(label, bar, el("span", "pct", `${pct} %`));
+      li.setAttribute("aria-label", `${o.label}: ${pct} posto`);
+      ul.append(li);
+    }
+    sec.append(ul);
+    const volume = pm.volume >= 1e6 ? `${(pm.volume / 1e6).toLocaleString("hr-HR", { maximumFractionDigits: 1 })} mil. $`
+      : `${Math.round(pm.volume / 1000)} tis. $`;
+    const note = el("p", "note");
+    const link = el("a", "", "Polymarket");
+    link.href = safeUrl(pm.url);
+    link.target = "_blank";
+    link.rel = "noopener noreferrer nofollow";
+    const when = el("time");
+    setTime(when, pm.updated_at);
+    note.append(link, `, promet ${volume}, ${pm.closed ? "tržište zatvoreno, zadnje kvote od" : "kvote osvježene"} `, when,
+      ". Kvote su procjena trgovaca na tržištu predviđanja, a ne činjenica ni stav neutrall.hr.");
+    sec.append(note);
+    return sec;
   }
 
   // Klik na temu (u trendu ili uz priču) pretražuje sve priče po toj ključnoj riječi.
