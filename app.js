@@ -130,11 +130,16 @@
     box.hidden = false;
   }
 
+  // Hrvatska množina: 1 priča, 2-4 priče, 5+ priča (11-14 priča).
+  const stories = (n) => `${n} ${n % 10 === 1 && n % 100 !== 11 ? "priča" : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? "priče" : "priča"}`;
+  const THREAD_PREVIEW = 3;
+
   // Niti u feedu: prva (najnovija) priča niti dobiva karticu, a ostale priče iste niti dodaju se u njen popis.
   let threadCards = new Map();
 
   function addToThread(card, story) {
     const box = $(".thread-more", card);
+    if ($("ul", box).children.length >= THREAD_PREVIEW) return;  // ostalo je u "Cijela nit"
     const li = el("li");
     const a = el("a", "", storyTitle(story));
     a.href = storyPath(story);
@@ -166,7 +171,7 @@
       label.href = threadPath(story.thread);
       label.hidden = false;
       const all = $(".thread-all", node);
-      all.textContent = `Cijela nit (${story.thread.count} ${story.thread.count < 5 ? "priče" : "priča"})`;
+      all.textContent = `Cijela nit (${stories(story.thread.count)})`;
       all.href = threadPath(story.thread);
       $(".thread-more", node).hidden = false;
       node.classList.add("in-thread");
@@ -529,7 +534,7 @@
         ol.append(li);
       }
       if (t.items.length > 12) {
-        const more = el("a", "thread-all", `Cijela nit (${t.count} priča)`);
+        const more = el("a", "thread-all", `Cijela nit (${stories(t.count)})`);
         more.href = threadPath(t);
         sec.append(more);
       }
@@ -558,7 +563,7 @@
     const back = el("a", "back", "Sve vijesti");
     back.href = "/";
     box.append(back, el("p", "kicker", "Nit"), el("h1", "title", t.title),
-      el("p", "lede", `${t.count} ${t.count < 5 ? "priče" : "priča"}, najnovija prva.`));
+      el("p", "lede", `${stories(t.count)}, najnovija prva.`));
     const ol = el("ol", "thread-list");
     for (const s of t.items) {
       const li = el("li");
@@ -733,7 +738,7 @@
         const b = el("button");
         b.type = "button";
         b.dataset.keyword = t.keyword;
-        b.append(el("span", "kw", t.keyword), el("span", "n", t.stories === 1 ? "1 priča" : `${t.stories} priče`));
+        b.append(el("span", "kw", t.keyword), el("span", "n", stories(t.stories)));
         b.addEventListener("click", () => (query === t.keyword ? clearSearch() : searchFor(t.keyword)));
         li.append(b);
         return li;
