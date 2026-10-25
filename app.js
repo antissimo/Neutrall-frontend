@@ -246,7 +246,7 @@
     if (location.pathname !== storyPath(story)) history.replaceState(null, "", storyPath(story));
     const lead = story.lead;
     const articles = [lead, ...story.related];
-    document.title = `${lead.title_hr || lead.title} | neutrall.hr`;
+    document.title = `${lead.title_hr || lead.title} | neutrall`;
 
     const back = el("a", "back", "Sve vijesti");
     back.href = "/";
@@ -324,7 +324,7 @@
     document.querySelector(".bar").hidden = true;
     $(".trending").remove();
     $(".more").hidden = true;
-    document.title = "Statistika | neutrall.hr";
+    document.title = "Statistika | neutrall";
     const box = $("#detail");
     box.classList.add("stats");
     box.hidden = false;
@@ -531,7 +531,7 @@
     document.querySelector(".bar").hidden = true;
     $(".trending").remove();
     $(".more").hidden = true;
-    document.title = "Sažetak dana | neutrall.hr";
+    document.title = "Sažetak dana | neutrall";
     $(".digest-btn").setAttribute("aria-current", "page");
     statusEl.textContent = "Učitavanje…";
     let data;
@@ -601,7 +601,7 @@
     const when = el("time");
     setTime(when, pm.updated_at);
     note.append(link, `, promet ${volume}, ${pm.closed ? "tržište zatvoreno, zadnje kvote od" : "kvote osvježene"} `, when,
-      ". Kvote su procjena trgovaca na tržištu predviđanja, a ne činjenica ni stav neutrall.hr.");
+      ". Kvote su procjena trgovaca na tržištu predviđanja, a ne činjenica ni stav neutralla.");
     sec.append(note);
     return sec;
   }
@@ -689,6 +689,13 @@
   }
 
   moreBtn.addEventListener("click", () => load(false));
+
+  // Datum ispod loga, kao na novinskoj naslovnici.
+  const dateline = $("#dateline");
+  if (dateline) {
+    const d = new Date().toLocaleDateString("hr-HR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    dateline.textContent = d.charAt(0).toUpperCase() + d.slice(1);
+  }
 
   if (location.pathname.replace(/\/$/, "") === "/statistika") {
     loadSources();

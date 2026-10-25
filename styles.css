@@ -42,7 +42,7 @@ a { color: var(--accent); text-underline-offset: 2px; }
 .digest-btn[aria-current="page"] { background: var(--accent-soft); color: var(--accent); }
 .logo { font: 600 34px/1 var(--serif); color: var(--ink); text-decoration: none; letter-spacing: -0.02em; }
 .logo span { color: var(--accent-fill); }
-.tagline { margin: 10px 0 0; max-width: 34em; color: var(--muted); font-size: 16px; line-height: 1.5; }
+.dateline { margin: 8px 0 0; color: var(--muted); font-size: 15px; }
 
 /* traka s filterima ostaje vidljiva pri listanju */
 .bar { position: sticky; top: 0; z-index: 3; background: rgb(255 255 255 / 0.96); border-bottom: 1px solid var(--rule); }
@@ -227,10 +227,10 @@ details li { margin-bottom: 8px; line-height: 1.45; }
 .stats td:not(:first-child):not(:nth-child(2)) { font-variant-numeric: tabular-nums; }
 
 /* podnožje */
-.footer { border-top: 1px solid var(--rule); margin-top: 16px; padding-top: 8px; padding-bottom: 56px; color: var(--muted); font-size: 15px; display: grid; gap: 8px 40px; grid-template-columns: 2fr 1fr; }
-.footer h2 { font: 600 17px var(--serif); color: var(--ink); }
-.footer ul { padding-left: 18px; margin: 0; }
-.footer li { margin-bottom: 8px; }
+.footer { border-top: 1px solid var(--rule); margin-top: 16px; padding-top: 16px; padding-bottom: 40px; color: var(--muted); font-size: 14px; }
+.footer p { margin: 0; }
+.footer .copy { font: 600 15px var(--serif); color: var(--ink); margin-right: 16px; }
+.footer .sources-label { margin-right: 4px; }
 
 @media (max-width: 900px) {
   .layout { grid-template-columns: minmax(0, 1fr); }
@@ -245,11 +245,9 @@ details li { margin-bottom: 8px; line-height: 1.45; }
 @media (max-width: 640px) {
   .brand { padding-top: 22px; padding-bottom: 14px; }
   .logo { font-size: 28px; }
-  .tagline { font-size: 15px; }
   .title { font-size: 23px; }
   .detail h1.title { font-size: 28px; }
   .detail .lede { font-size: 18px; }
-  .footer { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: no-preference) {
   details[open] > ul { animation: open 160ms ease-out; }

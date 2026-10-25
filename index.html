@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>neutrall.hr — vijesti iz više izvora</title>
+  <title>neutrall — vijesti</title>
   <meta name="description" content="Važne hrvatske vijesti sažete iz više medija: tko što tvrdi i u čemu se mediji razlikuju.">
   <meta name="theme-color" content="#ffffff">
   <meta name="color-scheme" content="light">
@@ -19,10 +19,10 @@
   <a class="skip" href="#feed">Preskoči na vijesti</a>
   <header class="brand wrap">
     <div class="brand-row">
-      <a class="logo" href="/" aria-label="neutrall.hr naslovnica">neutrall<span>.hr</span></a>
+      <a class="logo" href="/" aria-label="neutrall naslovnica">neutra<span>ll</span></a>
       <a class="digest-btn" href="/sazetak">Sažetak dana</a>
     </div>
-    <p class="tagline">Važne vijesti dana, sažete iz više medija. Uz svaku piše tko što tvrdi i gdje se mediji razilaze.</p>
+    <p class="dateline" id="dateline"></p>
   </header>
 
   <nav class="bar" aria-label="Filteri">
@@ -54,21 +54,7 @@
   </div>
 
   <footer class="wrap footer">
-    <section>
-      <h2>Kako radimo</h2>
-      <ul>
-        <li>Prikazujemo samo događaje o kojima piše barem dva medija i koje AI procijeni važnima. Trač, zabava i clickbait ne prolaze, a važnost se ne procjenjuje prema političkoj orijentaciji.</li>
-        <li>Sažetak i tvrdnje piše AI (Claude, a kad nije dostupan lokalni model) isključivo iz teksta članaka. Rečenice s brojkama, imenima ili činjenicama kojih nema u člancima automatski se izbacuju, ali greške su moguće.</li>
-        <li>Na stranici priče traka iznad naslova pokazuje koji mediji pišu o događaju, a kad neki medij navodi nešto drugo, to piše odmah ispod tvrdnje.</li>
-        <li>„U trendu“ su teme o kojima danas piše najviše medija. Klik na temu pretražuje sve priče u bazi.</li>
-        <li>Ne spremamo IP adrese. Preglednik pamti samo anonimni nasumični broj da bismo znali vraćaju li se čitatelji.</li>
-        <li>Filter tona: „Pozitivne“ skriva loše vijesti, „Negativne“ skriva dobre, a neutralne su vidljive u oba.</li>
-      </ul>
-    </section>
-    <section>
-      <h2>Izvori</h2>
-      <p id="sources" class="sources">Učitavanje…</p>
-    </section>
+    <p><span class="copy">© neutrall</span> <span class="sources-label">Izvori:</span> <span id="sources" class="sources"></span></p>
   </footer>
 
   <template id="story-tpl">

@@ -1,6 +1,6 @@
-# neutrall.hr — frontend
+# neutrall — frontend
 
-Javna stranica agregatora [neutrall.hr](https://neutrall.hr): čisti HTML, CSS i JavaScript, bez build koraka i bez ovisnosti. Podatke čita iz backend API-ja (zaseban repozitorij `neutrall`).
+Javna stranica agregatora vijesti neutrall: čisti HTML, CSS i JavaScript, bez build koraka i bez ovisnosti. Podatke čita iz backend API-ja (zaseban repozitorij `neutrall`).
 
 | Datoteka | |
 |---|---|
