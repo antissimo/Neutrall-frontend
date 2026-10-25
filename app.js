@@ -29,45 +29,30 @@
 
   const safeUrl = (u) => (/^https?:\/\//i.test(u || "") ? u : "#");
 
-  // Mjerenje čitanja bez kolačića (backend broji dnevne posjetitelje po sažetku sa dnevnom soli). Anonimni ID
-  // za mjerenje povratka šalje se samo uz pristanak.
+  // Mjerenje čitanja: dnevni posjetitelji po sažetku s dnevnom soli (backend) i anonimni broj za povratak.
   const store = {
     get: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
     set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* privatni način: bez pamćenja */ } },
     del: (k) => { try { localStorage.removeItem(k); } catch { /* isto */ } },
   };
+  // Anonimni nasumični broj u ovom pregledniku: samo da znamo vraća li se posjetitelj. IP se ne sprema.
+  function visitorId() {
+    let id = store.get("neutrall-vid");
+    if (!id) {
+      id = crypto.randomUUID ? crypto.randomUUID()
+        : "10000000-1000-4000-8000-100000000000".replace(/[018]/g, (c) => (c ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))).toString(16));
+      store.set("neutrall-vid", id);
+    }
+    return id;
+  }
   function track(kind, storyId) {
-    const body = JSON.stringify({ k: kind, s: storyId || undefined, v: store.get("neutrall-consent") === "da" ? store.get("neutrall-vid") || undefined : undefined });
+    const body = JSON.stringify({ k: kind, s: storyId || undefined, v: visitorId() });
     const blob = new Blob([body], { type: "text/plain" });
     if (!(navigator.sendBeacon && navigator.sendBeacon(API + "/api/v1/events", blob))) {
       fetch(API + "/api/v1/events", { method: "POST", body, headers: { "Content-Type": "text/plain" }, keepalive: true }).catch(() => {});
     }
   }
-  function askConsent() {
-    if (store.get("neutrall-consent")) return;
-    const bar = el("div", "consent");
-    bar.setAttribute("role", "region");
-    bar.setAttribute("aria-label", "Pristanak za mjerenje");
-    const text = el("p", "", "Smijemo li anonimno brojati vraćaš li se na neutrall.hr? Ne spremamo ime, e-poštu ni IP adresu.");
-    const yes = el("button", "yes", "Dopusti");
-    const no = el("button", "", "Ne");
-    for (const b of [yes, no]) b.type = "button";
-    yes.addEventListener("click", () => {
-      store.set("neutrall-consent", "da");
-      store.set("neutrall-vid", crypto.randomUUID ? crypto.randomUUID()
-        : "10000000-1000-4000-8000-100000000000".replace(/[018]/g, (c) => (c ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))).toString(16)));
-      bar.remove();
-    });
-    no.addEventListener("click", () => {
-      store.set("neutrall-consent", "ne");
-      store.del("neutrall-vid");
-      bar.remove();
-    });
-    const actions = el("div", "actions");
-    actions.append(yes, no);
-    bar.append(text, actions);
-    document.body.append(bar);
-  }
+
 
   function relativeTime(iso) {
     const diff = (Date.now() - new Date(iso).getTime()) / 1000;
@@ -404,8 +389,8 @@
       tile("Otvara stranicu", (S.visitors_7d_avg || 0).toLocaleString("hr-HR"), `posjetitelja dnevno (prosjek 7 dana); danas ${S.visitors_today}`),
       tile("Čita više priča", pct(S.multi_story_pct_7d), "posjetitelja dana otvori 2 ili više priča (7 dana)"),
       tile("Vrati se nakon 7 dana", pct(S.returned_after_7d_pct),
-        S.returned_after_7d_base ? `od ${S.returned_after_7d_base} koji su pristali na mjerenje; pristaje ${pct(S.consent_pct_7d)}`
-          : "još nema dovoljno starih posjetitelja koji su pristali na mjerenje"),
+        S.returned_after_7d_base ? `od ${S.returned_after_7d_base} posjetitelja čiji je prvi posjet bio prije 7+ dana`
+          : "još nema posjetitelja čiji je prvi posjet bio prije 7+ dana"),
       tile("Ocjene sažetaka", S.feedback_count ? `${pct(S.accurate_pct)} točno` : "–",
         S.feedback_count ? `${pct(S.neutral_pct)} nepristrano, ${S.feedback_count} ocjena (30 dana)` : "još nema ocjena"),
     );
@@ -479,7 +464,7 @@
       return sec;
     };
     box.append(...head(),
-      el("p", "lede", "Posjetitelji se broje po danu bez kolačića: ista osoba sutradan se broji ponovno. Povratak se mjeri samo za one koji su pristali."),
+      el("p", "lede", "Posjetitelji se broje po danu. Povratak se mjeri anonimnim brojem u pregledniku; IP adrese se ne spremaju."),
       tiles, chart,
       section("Po danu", daily),
       section("Najčitanije priče", d.top_stories_7d.length ? top : el("p", "", "Još nema otvorenih priča.")),
@@ -710,7 +695,6 @@
     renderStats();
     return;
   }
-  askConsent();
   if (location.pathname.replace(/\/$/, "") === "/sazetak") {
     renderDigest();
     return;
