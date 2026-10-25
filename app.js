@@ -658,7 +658,7 @@
     back.href = "/";
     const today = new Date().toLocaleDateString("hr-HR", { weekday: "long", day: "numeric", month: "long" });
     box.append(back, el("h1", "title", `Sažetak dana, ${today}`),
-      el("p", "lede", "Najvažnije iz zadnja 24 sata, poredano po važnosti i broju medija koji o tome pišu."));
+      el("p", "lede", "Najvažnije iz zadnja 24 sata, jedna stavka po temi, poredano po važnosti i broju medija."));
     if (!data.items.length) {
       box.append(el("p", "", "Zadnja 24 sata još nema dovoljno važnih priča. Pogledaj naslovnicu."));
     }
@@ -672,6 +672,11 @@
       const first = (story.lead.summary || "").split(/(?<=[.!?])\s+(?=[A-ZČĆŽŠĐ0-9])/).slice(0, 2).join(" ");
       const meta = el("p", "digest-meta", `${CATEGORY_LABELS[story.lead.category] || "Vijest"}, ${story.source_count} medija`);
       li.append(h, el("p", "", first), meta);
+      if (story.thread && story.thread.count > 1) {
+        const t = el("a", "digest-thread", `Cijela nit: ${story.thread.title} (${stories(story.thread.count)})`);
+        t.href = threadPath(story.thread);
+        li.append(t);
+      }
       ol.append(li);
     }
     box.append(ol);
