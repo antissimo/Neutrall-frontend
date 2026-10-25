@@ -40,6 +40,10 @@
     {
       "source": "/sazetak",
       "destination": "/"
+    },
+    {
+      "source": "/statistika",
+      "destination": "/"
     }
   ]
 }

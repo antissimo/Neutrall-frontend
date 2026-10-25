@@ -188,6 +188,55 @@ details li { margin-bottom: 8px; line-height: 1.45; }
 .market .pct { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
 .market .note { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
 
+/* traka za pristanak na mjerenje povratka */
+.consent {
+  position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 10; max-width: 640px; margin: 0 auto;
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 14px;
+  background: var(--bg); border: 1px solid var(--rule); border-radius: 8px; box-shadow: 0 4px 18px rgb(34 29 25 / 0.12);
+}
+.consent p { margin: 0; flex: 1 1 260px; font-size: 15px; }
+.consent .actions { display: flex; gap: 8px; }
+.consent button { border: 1px solid var(--rule); background: var(--bg); color: var(--ink); padding: 7px 14px; border-radius: 6px; font: 15px var(--sans); cursor: pointer; }
+.consent button.yes { background: var(--accent-fill); border-color: var(--accent-fill); color: #fff; font-weight: 700; }
+
+/* ocjena priče */
+.rating { margin-top: 24px; padding: 14px 16px; background: var(--surface); border-radius: 6px; }
+.rating h2 { margin: 0 0 8px; font: 600 18px/1.3 var(--serif); }
+.rating .q { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+.rating .q span { min-width: 7.5em; }
+.rating button { border: 1px solid #e7d5c4; background: var(--bg); color: var(--ink); padding: 5px 14px; border-radius: 6px; font: 15px var(--sans); cursor: pointer; }
+.rating button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent-fill); color: var(--accent); font-weight: 700; }
+.rating textarea { display: block; width: 100%; margin: 8px 0; padding: 8px 10px; border: 1px solid #e7d5c4; border-radius: 6px; font: 15px var(--sans); resize: vertical; }
+.rating .send { margin-top: 8px; background: var(--accent-fill); border-color: var(--accent-fill); color: #fff; font-weight: 700; }
+.rating .send:disabled { opacity: 0.5; cursor: default; }
+.rating .thanks { margin: 0; color: var(--muted); }
+
+/* statistika */
+.stats { max-width: 920px; }
+.key-form { display: flex; gap: 8px; max-width: 420px; }
+.key-form input { flex: 1; padding: 8px 12px; border: 1px solid #e7d5c4; border-radius: 6px; font: 16px var(--sans); }
+.key-form button { padding: 8px 16px; border: 0; border-radius: 6px; background: var(--accent-fill); color: #fff; font: 700 15px var(--sans); cursor: pointer; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 8px 0 24px; }
+.tile { padding: 14px 16px; border: 1px solid var(--rule); border-radius: 8px; }
+.tile .label { margin: 0; font-size: 14px; color: var(--muted); }
+.tile .value { margin: 4px 0; font: 600 32px/1.1 var(--serif); font-variant-numeric: tabular-nums; }
+.tile .note { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.4; }
+.chart { margin: 0 0 24px; }
+.chart figcaption { font: 600 16px var(--serif); margin-bottom: 8px; }
+.plot { position: relative; padding-left: 34px; }
+.plot .ymax { position: absolute; left: 0; top: 0; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.bars { display: flex; align-items: flex-end; gap: 2px; height: 160px; border-bottom: 1px solid var(--rule); }
+.bars .b { flex: 1; min-width: 3px; background: var(--accent-fill); border-radius: 4px 4px 0 0; outline-offset: 1px; }
+.bars .b:hover, .bars .b:focus { background: var(--accent); }
+.plot .tip { position: absolute; top: -8px; transform: translate(-50%, -100%); white-space: nowrap; padding: 4px 8px; border-radius: 4px; background: var(--ink); color: #fff; font-size: 13px; pointer-events: none; }
+.axis { display: flex; justify-content: space-between; padding-left: 34px; font-size: 12px; color: var(--muted); }
+.stats-section { margin-top: 24px; overflow-x: auto; }
+.stats-section h2 { font: 600 18px var(--serif); margin: 0 0 8px; }
+.stats table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.stats th { text-align: left; font-weight: 700; color: var(--muted); border-bottom: 1px solid var(--rule); padding: 6px 8px 6px 0; }
+.stats td { border-bottom: 1px solid var(--rule); padding: 6px 8px 6px 0; vertical-align: top; }
+.stats td:not(:first-child):not(:nth-child(2)) { font-variant-numeric: tabular-nums; }
+
 /* podnožje */
 .footer { border-top: 1px solid var(--rule); margin-top: 16px; padding-top: 8px; padding-bottom: 56px; color: var(--muted); font-size: 15px; display: grid; gap: 8px 40px; grid-template-columns: 2fr 1fr; }
 .footer h2 { font: 600 17px var(--serif); color: var(--ink); }

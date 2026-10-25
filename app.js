@@ -29,6 +29,46 @@
 
   const safeUrl = (u) => (/^https?:\/\//i.test(u || "") ? u : "#");
 
+  // Mjerenje čitanja bez kolačića (backend broji dnevne posjetitelje po sažetku sa dnevnom soli). Anonimni ID
+  // za mjerenje povratka šalje se samo uz pristanak.
+  const store = {
+    get: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
+    set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* privatni način: bez pamćenja */ } },
+    del: (k) => { try { localStorage.removeItem(k); } catch { /* isto */ } },
+  };
+  function track(kind, storyId) {
+    const body = JSON.stringify({ k: kind, s: storyId || undefined, v: store.get("neutrall-consent") === "da" ? store.get("neutrall-vid") || undefined : undefined });
+    const blob = new Blob([body], { type: "text/plain" });
+    if (!(navigator.sendBeacon && navigator.sendBeacon(API + "/api/v1/events", blob))) {
+      fetch(API + "/api/v1/events", { method: "POST", body, headers: { "Content-Type": "text/plain" }, keepalive: true }).catch(() => {});
+    }
+  }
+  function askConsent() {
+    if (store.get("neutrall-consent")) return;
+    const bar = el("div", "consent");
+    bar.setAttribute("role", "region");
+    bar.setAttribute("aria-label", "Pristanak za mjerenje");
+    const text = el("p", "", "Smijemo li anonimno brojati vraćaš li se na neutrall.hr? Ne spremamo ime, e-poštu ni IP adresu.");
+    const yes = el("button", "yes", "Dopusti");
+    const no = el("button", "", "Ne");
+    for (const b of [yes, no]) b.type = "button";
+    yes.addEventListener("click", () => {
+      store.set("neutrall-consent", "da");
+      store.set("neutrall-vid", crypto.randomUUID ? crypto.randomUUID()
+        : "10000000-1000-4000-8000-100000000000".replace(/[018]/g, (c) => (c ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))).toString(16)));
+      bar.remove();
+    });
+    no.addEventListener("click", () => {
+      store.set("neutrall-consent", "ne");
+      store.del("neutrall-vid");
+      bar.remove();
+    });
+    const actions = el("div", "actions");
+    actions.append(yes, no);
+    bar.append(text, actions);
+    document.body.append(bar);
+  }
+
   function relativeTime(iso) {
     const diff = (Date.now() - new Date(iso).getTime()) / 1000;
     if (diff < 60) return "upravo";
@@ -139,6 +179,7 @@
         data = await api(`/api/v1/feed?${qs}`);
       }
       if (id !== requestId) return;
+      if (reset) track(query ? "search" : "feed");
       feedEl.append(...data.items.map(renderStory));
       cursor = query ? null : data.next_cursor;
       moreBtn.hidden = !cursor;
@@ -215,6 +256,7 @@
       return;
     }
     statusEl.textContent = "";
+    track("story", story.id);
     // Stara ili skraćena adresa preusmjerava se na kanonsku, s naslovom.
     if (location.pathname !== storyPath(story)) history.replaceState(null, "", storyPath(story));
     const lead = story.lead;
@@ -255,6 +297,8 @@
       box.append(topics);
     }
 
+    box.append(renderRating(story.id));
+
     const src = el("section", "originals");
     src.append(el("h2", "", "Izvorni članci"));
     const ul = el("ul");
@@ -290,6 +334,213 @@
     box.hidden = false;
   }
 
+  // Statistika čitanja (ključ samo za čitanje, pamti se u ovom pregledniku).
+  async function renderStats() {
+    document.querySelector(".bar").hidden = true;
+    $(".trending").remove();
+    $(".more").hidden = true;
+    document.title = "Statistika | neutrall.hr";
+    const box = $("#detail");
+    box.classList.add("stats");
+    box.hidden = false;
+    const head = () => {
+      const back = el("a", "back", "Sve vijesti");
+      back.href = "/";
+      return [back, el("h1", "title", "Statistika čitanja")];
+    };
+    // Ključ iz adrese (/statistika?k=...) se zapamti i odmah makne iz adrese.
+    const fromUrl = new URLSearchParams(location.search).get("k");
+    if (fromUrl) {
+      store.set("neutrall-stats-key", fromUrl);
+      history.replaceState(null, "", "/statistika");
+    }
+    const key = store.get("neutrall-stats-key");
+    if (!key) {
+      const form = el("form", "key-form");
+      const input = el("input");
+      input.type = "password";
+      input.autocomplete = "off";
+      input.placeholder = "Ključ za statistiku (STATS_KEY)";
+      input.setAttribute("aria-label", "Ključ za statistiku");
+      const go = el("button", "", "Prikaži");
+      go.type = "submit";
+      form.append(input, go);
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        store.set("neutrall-stats-key", input.value.trim());
+        box.replaceChildren();
+        renderStats();
+      });
+      box.append(...head(), el("p", "lede", "Unesi ključ za statistiku. Pamti se samo u ovom pregledniku."), form);
+      input.focus();
+      return;
+    }
+    statusEl.textContent = "Učitavanje…";
+    let d;
+    try {
+      d = await api(`/api/v1/stats?k=${encodeURIComponent(key)}`);
+    } catch (e) {
+      statusEl.textContent = "";
+      if (e.message === "HTTP 403") {
+        store.del("neutrall-stats-key");
+        box.replaceChildren();
+        renderStats();
+        statusEl.textContent = "Ključ nije ispravan.";
+      } else {
+        statusEl.textContent = "Statistika trenutno nije dostupna.";
+      }
+      return;
+    }
+    statusEl.textContent = "";
+    const S = d.summary;
+    const pct = (v) => (v == null ? "–" : `${v.toLocaleString("hr-HR")} %`);
+    const tile = (label, value, note) => {
+      const t = el("div", "tile");
+      t.append(el("p", "label", label), el("p", "value", value), el("p", "note", note));
+      return t;
+    };
+    const tiles = el("div", "tiles");
+    tiles.append(
+      tile("Otvara stranicu", (S.visitors_7d_avg || 0).toLocaleString("hr-HR"), `posjetitelja dnevno (prosjek 7 dana); danas ${S.visitors_today}`),
+      tile("Čita više priča", pct(S.multi_story_pct_7d), "posjetitelja dana otvori 2 ili više priča (7 dana)"),
+      tile("Vrati se nakon 7 dana", pct(S.returned_after_7d_pct),
+        S.returned_after_7d_base ? `od ${S.returned_after_7d_base} koji su pristali na mjerenje; pristaje ${pct(S.consent_pct_7d)}`
+          : "još nema dovoljno starih posjetitelja koji su pristali na mjerenje"),
+      tile("Ocjene sažetaka", S.feedback_count ? `${pct(S.accurate_pct)} točno` : "–",
+        S.feedback_count ? `${pct(S.neutral_pct)} nepristrano, ${S.feedback_count} ocjena (30 dana)` : "još nema ocjena"),
+    );
+
+    // Posjetitelji po danu: jedna serija, stupci od osnovice; vrijednost u oblačiću i u tablici ispod.
+    const chart = el("figure", "chart");
+    chart.append(el("figcaption", "", "Posjetitelji po danu, zadnjih 30 dana"));
+    const max = Math.max(1, ...d.daily.map((x) => x.visitors));
+    const bars = el("div", "bars");
+    bars.setAttribute("role", "img");
+    bars.setAttribute("aria-label", `Posjetitelji po danu, najviše ${max}`);
+    const tip = el("div", "tip");
+    tip.hidden = true;
+    const fmtDay = (iso) => new Date(iso + "T12:00:00Z").toLocaleDateString("hr-HR", { day: "numeric", month: "numeric" });
+    for (const x of d.daily) {
+      const b = el("span", "b");
+      b.style.height = `${Math.max(2, (x.visitors / max) * 100)}%`;
+      b.tabIndex = 0;
+      const show = () => {
+        tip.textContent = `${fmtDay(x.day)}: ${x.visitors} posjetitelja, ${x.story_views} otvorenih priča`;
+        tip.hidden = false;
+        tip.style.left = `${b.offsetLeft + b.offsetWidth / 2}px`;
+      };
+      b.addEventListener("mouseenter", show);
+      b.addEventListener("focus", show);
+      b.addEventListener("mouseleave", () => { tip.hidden = true; });
+      b.addEventListener("blur", () => { tip.hidden = true; });
+      bars.append(b);
+    }
+    const axis = el("div", "axis");
+    if (d.daily.length) axis.append(el("span", "", fmtDay(d.daily[0].day)), el("span", "", fmtDay(d.daily[d.daily.length - 1].day)));
+    const plot = el("div", "plot");
+    plot.append(el("span", "ymax", String(max)), bars, tip);
+    chart.append(plot, axis);
+
+    const table = (cols, rows) => {
+      const t = el("table");
+      const tr = el("tr");
+      cols.forEach((c) => tr.append(el("th", "", c)));
+      const thead = el("thead");
+      thead.append(tr);
+      const tbody = el("tbody");
+      rows.forEach((r) => {
+        const row = el("tr");
+        r.forEach((c) => { const td = el("td"); td.append(c); row.append(td); });
+        tbody.append(row);
+      });
+      t.append(thead, tbody);
+      return t;
+    };
+    const daily = table(["Dan", "Posjetitelji", "Pregledi", "Otvorene priče", "2+ priče"],
+      [...d.daily].reverse().map((x) => [fmtDay(x.day), String(x.visitors), String(x.views), String(x.story_views), pct(x.multi_story_pct)]));
+    const link = (id, title) => {
+      const a = el("a", "", title || `Priča ${id}`);
+      a.href = `/prica/${id}`;
+      return a;
+    };
+    const top = table(["Priča (7 dana)", "Otvaranja", "Čitatelja"],
+      d.top_stories_7d.map((x) => [link(x.story_id, x.title), String(x.views), String(x.readers)]));
+    const yn = (v) => (v == null ? "–" : v ? "da" : "ne");
+    const neg = table(["Kad", "Priča", "Točna", "Nepristrana", "Komentar"],
+      d.negative_feedback.map((x) => [new Date(x.ts).toLocaleString("hr-HR", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" }),
+        link(x.story_id, x.title), yn(x.accurate), yn(x.neutral), x.comment || ""]));
+
+    const logout = el("button", "share", "Zaboravi ključ u ovom pregledniku");
+    logout.type = "button";
+    logout.addEventListener("click", () => { store.del("neutrall-stats-key"); location.reload(); });
+    const section = (title, ...children) => {
+      const sec = el("section", "stats-section");
+      sec.append(el("h2", "", title), ...children);
+      return sec;
+    };
+    box.append(...head(),
+      el("p", "lede", "Posjetitelji se broje po danu bez kolačića: ista osoba sutradan se broji ponovno. Povratak se mjeri samo za one koji su pristali."),
+      tiles, chart,
+      section("Po danu", daily),
+      section("Najčitanije priče", d.top_stories_7d.length ? top : el("p", "", "Još nema otvorenih priča.")),
+      section("Negativne ocjene i komentari", d.negative_feedback.length ? neg : el("p", "", "Još nema negativnih ocjena.")),
+      logout);
+  }
+
+  // Ocjena priče: točnost i nepristranost (da/ne) uz neobavezni komentar. Pamti se da je priča ocijenjena.
+  function renderRating(storyId) {
+    const sec = el("section", "rating");
+    sec.append(el("h2", "", "Je li ova priča točna i nepristrana?"));
+    if (store.get(`neutrall-rated-${storyId}`)) {
+      sec.append(el("p", "thanks", "Hvala, tvoja ocjena je zabilježena."));
+      return sec;
+    }
+    const answers = {};
+    const row = (key, label) => {
+      const p = el("div", "q");
+      p.append(el("span", "", label));
+      for (const [text, val] of [["Da", true], ["Ne", false]]) {
+        const b = el("button", "", text);
+        b.type = "button";
+        b.setAttribute("aria-pressed", "false");
+        b.addEventListener("click", () => {
+          answers[key] = val;
+          p.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+          send.disabled = false;
+          if (val === false) comment.hidden = false;
+        });
+        p.append(b);
+      }
+      return p;
+    };
+    const comment = el("textarea");
+    comment.maxLength = 300;
+    comment.rows = 2;
+    comment.placeholder = "Što nije točno ili je pristrano? (neobavezno)";
+    comment.setAttribute("aria-label", "Komentar");
+    comment.hidden = true;
+    const send = el("button", "send", "Pošalji ocjenu");
+    send.type = "button";
+    send.disabled = true;
+    send.addEventListener("click", async () => {
+      send.disabled = true;
+      try {
+        const res = await fetch(API + "/api/v1/feedback", {
+          method: "POST", headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify({ s: storyId, ...answers, comment: comment.value.trim() || undefined }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        store.set(`neutrall-rated-${storyId}`, "1");
+        sec.replaceChildren(el("h2", "", "Je li ova priča točna i nepristrana?"), el("p", "thanks", "Hvala, tvoja ocjena je zabilježena."));
+      } catch {
+        send.disabled = false;
+        send.textContent = "Slanje nije uspjelo, pokušaj ponovno";
+      }
+    });
+    sec.append(row("accurate", "Točna"), row("neutral", "Nepristrana"), comment, send);
+    return sec;
+  }
+
   // Sažetak dana: najvažnije priče zadnjih 24 sata, poredane po važnosti (zato su numerirane).
   async function renderDigest() {
     document.querySelector(".bar").hidden = true;
@@ -301,6 +552,7 @@
     let data;
     try {
       data = await api("/api/v1/digest");
+      track("digest");
     } catch {
       statusEl.textContent = "Sažetak trenutno nije dostupan. Pokušaj ponovno za nekoliko minuta.";
       return;
@@ -453,6 +705,11 @@
 
   moreBtn.addEventListener("click", () => load(false));
 
+  if (location.pathname.replace(/\/$/, "") === "/statistika") {
+    renderStats();
+    return;
+  }
+  askConsent();
   if (location.pathname.replace(/\/$/, "") === "/sazetak") {
     renderDigest();
     return;
