@@ -186,7 +186,15 @@
     e.preventDefault();
     runSearch();
   });
+  const clearBtn = $("#clear");
+  const syncClear = () => { clearBtn.hidden = !searchInput.value; };
+  clearBtn.addEventListener("click", () => {
+    clearSearch();
+    searchInput.focus();
+  });
+  syncClear();
   searchInput.addEventListener("input", () => {
+    syncClear();
     clearTimeout(searchTimer);
     searchTimer = setTimeout(runSearch, searchInput.value.trim() ? 700 : 0);
   });
@@ -283,6 +291,7 @@
   // Klik na temu (u trendu ili uz priču) pretražuje sve priče po toj ključnoj riječi.
   function searchFor(keyword) {
     searchInput.value = keyword;
+    syncClear();
     runSearch();
     markTrending();
     window.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
@@ -316,6 +325,7 @@
 
   function clearSearch() {
     searchInput.value = "";
+    syncClear();
     runSearch();
     markTrending();
   }

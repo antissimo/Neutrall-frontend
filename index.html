@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>neutrall.hr — vijesti iz više izvora</title>
   <meta name="description" content="Važne hrvatske vijesti sažete iz više medija: tko što tvrdi i u čemu se mediji razlikuju.">
-  <meta name="theme-color" content="#eef1ee" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#151c1f" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="color-scheme" content="light">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preload" href="/fonts/serif-600-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/fonts/public-400-latin.woff2" as="font" type="font/woff2" crossorigin>
@@ -29,6 +29,7 @@
         <form class="search" id="search" role="search">
           <input type="search" id="q" name="q" maxlength="200" autocomplete="off"
                  placeholder="Pretraži po značenju, npr. poskupljenje struje" aria-label="Pretraga vijesti">
+          <button type="button" class="clear" id="clear" aria-label="Obriši pretragu" hidden>×</button>
         </form>
         <div class="segmented" id="regions" role="group" aria-label="Regija"></div>
         <div class="segmented" id="tones" role="group" aria-label="Ton vijesti"></div>
