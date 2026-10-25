@@ -706,6 +706,7 @@
   moreBtn.addEventListener("click", () => load(false));
 
   if (location.pathname.replace(/\/$/, "") === "/statistika") {
+    loadSources();
     renderStats();
     return;
   }
