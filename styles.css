@@ -151,7 +151,12 @@ details li { margin-bottom: 8px; line-height: 1.45; }
 
 /* stranica priče: /prica/<id>-<naslov> */
 .detail { padding: 24px 0 8px; max-width: 680px; }
-.detail .back { font-size: 15px; }
+.detail .back {
+  display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px 10px 14px; border-radius: 8px;
+  background: var(--accent-soft); color: var(--accent); font-size: 17px; font-weight: 700; text-decoration: none;
+}
+.detail .back::before { content: "←"; font-size: 20px; line-height: 1; }
+.detail .back:hover { background: #fed7aa; }
 .detail .meta { margin-top: 18px; }
 .detail h1.title { font-size: 36px; line-height: 1.15; margin: 12px 0 16px; }
 .detail .lede { font-size: 19px; line-height: 1.55; margin: 0 0 18px; }
