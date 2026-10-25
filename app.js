@@ -665,17 +665,40 @@
     const ol = el("ol", "digest-list");
     for (const story of data.items) {
       const li = el("li");
-      const a = el("a", "", storyTitle(story));
-      a.href = storyPath(story);
-      const h = el("h2");
-      h.append(a);
       const first = (story.lead.summary || "").split(/(?<=[.!?])\s+(?=[A-ZČĆŽŠĐ0-9])/).slice(0, 2).join(" ");
       const meta = el("p", "digest-meta", `${CATEGORY_LABELS[story.lead.category] || "Vijest"}, ${story.source_count} medija`);
-      li.append(h, el("p", "", first), meta);
+      const storyLink = el("a", "", storyTitle(story));
+      storyLink.href = storyPath(story);
       if (story.thread && story.thread.count > 1) {
-        const t = el("a", "digest-thread", `Cijela nit: ${story.thread.title} (${stories(story.thread.count)})`);
-        t.href = threadPath(story.thread);
-        li.append(t);
+        // Tema s više priča: naslov teme, najnoviji važan razvoj i ostali ključni naslovi teme.
+        li.classList.add("digest-topic");
+        const topic = el("a", "", story.thread.title.charAt(0).toUpperCase() + story.thread.title.slice(1));
+        topic.href = threadPath(story.thread);
+        const h = el("h2");
+        h.append(topic);
+        const sub = el("h3");
+        sub.append(storyLink);
+        li.append(h, sub, el("p", "", first));
+        if (story.thread_headlines && story.thread_headlines.length) {
+          const ul = el("ul", "digest-headlines");
+          for (const t of story.thread_headlines) {
+            const item = el("li");
+            const a = el("a", "", t.title);
+            a.href = `/prica/${t.id}-${slug(t.title)}`;
+            const when = el("time");
+            setTime(when, t.updated_at);
+            item.append(a, " ", when);
+            ul.append(item);
+          }
+          li.append(ul);
+        }
+        const all = el("a", "digest-thread", `Cijela tema (${stories(story.thread.count)})`);
+        all.href = threadPath(story.thread);
+        li.append(all);
+      } else {
+        const h = el("h2");
+        h.append(storyLink);
+        li.append(h, el("p", "", first), meta);
       }
       ol.append(li);
     }

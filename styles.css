@@ -207,7 +207,15 @@ details li { margin-bottom: 8px; line-height: 1.45; }
 .digest-list h2 a:hover { text-decoration: underline; text-underline-offset: 4px; }
 .digest-list p { margin: 0; }
 .digest-list .digest-meta { margin-top: 4px; font-size: 13px; color: var(--muted); }
-.digest-list .digest-thread { display: inline-block; margin-top: 4px; font-size: 14px; font-weight: 700; }
+.digest-list .digest-thread { display: inline-block; margin-top: 6px; font-size: 14px; font-weight: 700; }
+.digest-list h3 { margin: 0 0 4px; font: 700 16px/1.35 var(--sans); }
+.digest-list h3 a { color: var(--ink); text-decoration: none; }
+.digest-list h3 a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.digest-headlines { list-style: none; margin: 8px 0 0; padding: 0 0 0 12px; border-left: 2px solid var(--accent-soft); }
+.digest-headlines li { padding: 3px 0; border: 0; font-size: 15px; line-height: 1.4; }
+.digest-headlines a { color: var(--ink); text-decoration: none; }
+.digest-headlines a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.digest-headlines time { font-size: 13px; color: var(--muted); white-space: nowrap; }
 
 /* tržište predviđanja na stranici priče */
 .market { margin: 4px 0 22px; padding: 14px 16px; border: 1px solid var(--rule); border-radius: 6px; }
