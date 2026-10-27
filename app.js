@@ -310,10 +310,29 @@
     const body = el("div", "body");
     for (const p of story.body || []) body.append(el("p", "", p));
 
+    // Vrijeme čitanja: sažetak i tekst priče, oko 200 riječi u minuti.
+    const words = [lead.summary || "", ...(story.body || [])].join(" ").split(/\s+/).filter(Boolean).length;
+    meta.append(el("span", "reading", `${Math.max(1, Math.round(words / 200))} min čitanja`));
+
     box.append(back, meta, coverage, h1, lede);
+    if (story.why_it_matters) {
+      const why = el("aside", "why");
+      why.append(el("strong", "", "Zašto je važno"), el("p", "", story.why_it_matters));
+      box.append(why);
+    }
     if (story.polymarket) box.append(renderMarket(story.polymarket));
     box.append(body);
     if (lead.uncertainty) box.append(el("p", "uncertainty", lead.uncertainty));
+
+    // Ključne brojke iz priče (AI ih izvlači iz članaka, uz jedinicu).
+    const numbers = (lead.facts && lead.facts.numbers) || [];
+    if (numbers.length >= 2) {
+      const sec = el("section", "numbers");
+      const ul = el("ul");
+      numbers.forEach((n) => ul.append(el("li", "", n)));
+      sec.append(el("h2", "", "Ključne brojke"), ul);
+      box.append(sec);
+    }
     if (story.claims && story.claims.length) {
       const claims = el("section", "claims");
       claims.append(el("h2", "", "Tko što tvrdi"), el("ul"));
@@ -330,26 +349,56 @@
       box.append(topics);
     }
 
-    if (story.thread) box.append(renderTimeline(story));
-    box.append(renderRating(story.id));
+    // Pojmovi: kratka objašnjenja (opće znanje, ne iz članaka, pa je to i napisano).
+    if (story.glossary && story.glossary.length) {
+      const sec = el("section", "glossary");
+      const dl = el("dl");
+      for (const g of story.glossary) dl.append(el("dt", "", g.term), el("dd", "", g.explanation));
+      sec.append(el("h2", "", "Pojmovi"), dl, el("p", "note", "Objašnjenja pojmova su opće znanje, a ne sadržaj članaka."));
+      box.append(sec);
+    }
 
+    if (story.thread) box.append(renderTimeline(story));
+
+    // Kako su naslovili: najnoviji naslov svakog medija jedan ispod drugoga (uokvirivanje iste vijesti),
+    // a sve poveznice na originale u popisu ispod.
+    const link = (a, cls) => {
+      const l = el("a", cls || "", a.title_hr || a.title);
+      l.href = safeUrl(a.url);
+      l.target = "_blank";
+      l.rel = "noopener noreferrer";
+      return l;
+    };
+    const bySource = new Map();
+    for (const a of [...articles].sort((x, y) => y.published_at.localeCompare(x.published_at))) {
+      if (!bySource.has(a.source.name)) bySource.set(a.source.name, []);
+      bySource.get(a.source.name).push(a);
+    }
     const src = el("section", "originals");
-    src.append(el("h2", "", "Izvorni članci"));
-    const ul = el("ul");
-    for (const a of [...articles].sort((x, y) => x.published_at.localeCompare(y.published_at))) {
+    src.append(el("h2", "", "Kako su naslovili"));
+    const ul = el("ul", "headlines");
+    for (const [name, list] of bySource) {
       const li = el("li");
-      const link = el("a", "", a.title_hr || a.title);
-      link.href = safeUrl(a.url);
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-      const when = el("time");
-      setTime(when, a.published_at);
-      const who = el("span", "rel-source", a.source.name + " ");
-      who.append(when);
-      li.append(who, link);
+      li.append(el("span", "rel-source", name), link(list[0]));
       ul.append(li);
     }
     src.append(ul);
+    if (articles.length > bySource.size) {
+      const all = el("details", "all-originals");
+      all.append(el("summary", "", `Svi izvorni članci (${articles.length})`));
+      const ol = el("ul");
+      for (const a of [...articles].sort((x, y) => y.published_at.localeCompare(x.published_at))) {
+        const li = el("li");
+        const when = el("time");
+        setTime(when, a.published_at);
+        const who = el("span", "rel-source", a.source.name + " ");
+        who.append(when);
+        li.append(who, link(a));
+        ol.append(li);
+      }
+      all.append(ol);
+      src.append(all);
+    }
     const note = el("p", "ai-label", story.ai_provider && story.ai_provider.startsWith("claude")
       ? "Tekst je napisao AI (Claude) iz članaka navedenih medija; originale ne čuvamo, nego vodimo na njih."
       : "Tekst je napisao lokalni AI model iz članaka navedenih medija.");
@@ -440,8 +489,6 @@
       tile("Vrati se nakon 7 dana", pct(S.returned_after_7d_pct),
         S.returned_after_7d_base ? `od ${S.returned_after_7d_base} posjetitelja čiji je prvi posjet bio prije 7+ dana`
           : "još nema posjetitelja čiji je prvi posjet bio prije 7+ dana"),
-      tile("Ocjene sažetaka", S.feedback_count ? `${pct(S.accurate_pct)} točno` : "–",
-        S.feedback_count ? `${pct(S.neutral_pct)} nepristrano, ${S.feedback_count} ocjena (30 dana)` : "još nema ocjena"),
     );
 
     // Posjetitelji po danu: jedna serija, stupci od osnovice; vrijednost u oblačiću i u tablici ispod.
@@ -499,10 +546,6 @@
     };
     const top = table(["Priča (7 dana)", "Otvaranja", "Čitatelja"],
       d.top_stories_7d.map((x) => [link(x.story_id, x.title), String(x.views), String(x.readers)]));
-    const yn = (v) => (v == null ? "–" : v ? "da" : "ne");
-    const neg = table(["Kad", "Priča", "Točna", "Nepristrana", "Komentar"],
-      d.negative_feedback.map((x) => [new Date(x.ts).toLocaleString("hr-HR", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" }),
-        link(x.story_id, x.title), yn(x.accurate), yn(x.neutral), x.comment || ""]));
 
     const logout = el("button", "share", "Zaboravi ključ u ovom pregledniku");
     logout.type = "button";
@@ -517,7 +560,6 @@
       tiles, chart,
       section("Po danu", daily),
       section("Najčitanije priče", d.top_stories_7d.length ? top : el("p", "", "Još nema otvorenih priča.")),
-      section("Negativne ocjene i komentari", d.negative_feedback.length ? neg : el("p", "", "Još nema negativnih ocjena.")),
       logout);
   }
 
@@ -587,60 +629,6 @@
     }
     box.append(ol);
     box.hidden = false;
-  }
-
-  // Ocjena priče: točnost i nepristranost (da/ne) uz neobavezni komentar. Pamti se da je priča ocijenjena.
-  function renderRating(storyId) {
-    const sec = el("section", "rating");
-    sec.append(el("h2", "", "Je li ova priča točna i nepristrana?"));
-    if (store.get(`neutrall-rated-${storyId}`)) {
-      sec.append(el("p", "thanks", "Hvala, tvoja ocjena je zabilježena."));
-      return sec;
-    }
-    const answers = {};
-    const row = (key, label) => {
-      const p = el("div", "q");
-      p.append(el("span", "", label));
-      for (const [text, val] of [["Da", true], ["Ne", false]]) {
-        const b = el("button", "", text);
-        b.type = "button";
-        b.setAttribute("aria-pressed", "false");
-        b.addEventListener("click", () => {
-          answers[key] = val;
-          p.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
-          send.disabled = false;
-          if (val === false) comment.hidden = false;
-        });
-        p.append(b);
-      }
-      return p;
-    };
-    const comment = el("textarea");
-    comment.maxLength = 300;
-    comment.rows = 2;
-    comment.placeholder = "Što nije točno ili je pristrano? (neobavezno)";
-    comment.setAttribute("aria-label", "Komentar");
-    comment.hidden = true;
-    const send = el("button", "send", "Pošalji ocjenu");
-    send.type = "button";
-    send.disabled = true;
-    send.addEventListener("click", async () => {
-      send.disabled = true;
-      try {
-        const res = await fetch(API + "/api/v1/feedback", {
-          method: "POST", headers: { "Content-Type": "text/plain" },
-          body: JSON.stringify({ s: storyId, ...answers, comment: comment.value.trim() || undefined }),
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        store.set(`neutrall-rated-${storyId}`, "1");
-        sec.replaceChildren(el("h2", "", "Je li ova priča točna i nepristrana?"), el("p", "thanks", "Hvala, tvoja ocjena je zabilježena."));
-      } catch {
-        send.disabled = false;
-        send.textContent = "Slanje nije uspjelo, pokušaj ponovno";
-      }
-    });
-    sec.append(row("accurate", "Točna"), row("neutral", "Nepristrana"), comment, send);
-    return sec;
   }
 
   // Sažetak dana: najvažnije priče zadnjih 24 sata, poredane po važnosti (zato su numerirane).
